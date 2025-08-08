@@ -1,20 +1,12 @@
 # 添加用户与邮箱
-`git config --global user.name "你的用户名"
-`git config --global user.email "你的邮箱"
-### 添加文件
-- 先克隆然后添加文件
-- 在根目录运行`git add .
-- 使用`git status`进行检查
-- `git commit -m` "提交说明"
-- `git push origin main`
-### 创建新仓库
-`cd your-local-project`
-`git init                # 初始化为 Git 仓库`
-`git remote add origin https://github.com/yourname/your-repo.git`
+`git config --global user.name "你的用户名"`
+
+`git config --global user.email "你的邮箱"`
 
 
 
-提交新文件需要遵循一个标准的\*\*“拉取-提交-推送”\*\*工作流。
+
+提交新文件需要遵循一个标准的“拉取-提交-推送”工作流。
 这个流程可以避免 `rejected` 错误，并确保你的本地仓库始终与远程仓库保持同步。
 ### 提交工作流（推荐）
 
