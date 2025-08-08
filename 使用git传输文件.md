@@ -5,11 +5,11 @@
 - 先克隆然后添加文件
 - 在根目录运行`git add .
 - 使用`git status`进行检查
-- `git commit -m "提交说明"
-- `git push origin main
+- `git commit -m` "提交说明"
+- `git push origin main`
 ### 创建新仓库
-`cd your-local-project
-`git init                # 初始化为 Git 仓库
+`cd your-local-project`
+`git init                # 初始化为 Git 仓库`
 `git remote add origin https://github.com/yourname/your-repo.git`
 
 
