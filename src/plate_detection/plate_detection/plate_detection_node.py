@@ -50,7 +50,9 @@ except ImportError as e:
 clors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(0,255,255)]
 danger=['危','险']
 
-def order_points(pts):                   #四个点按照左上 右上 右下 左下排列
+def order_points(pts):                   
+    """作用：将四个点按照左上 右上 右下 左下排列
+    步骤：计算四个点坐标和->计算左上和右下点->计算右上和左下点"""
     rect = np.zeros((4, 2), dtype = "float32")
     s = pts.sum(axis = 1)
     rect[0] = pts[np.argmin(s)]
@@ -60,7 +62,9 @@ def order_points(pts):                   #四个点按照左上 右上 右下 �
     rect[3] = pts[np.argmax(diff)]
     return rect
 
-def four_point_transform(image, pts):                       #透视变换得到车牌小图
+def four_point_transform(image, pts):     
+    """作用：对车牌区域进行透视变换，得到正视图
+    步骤：计算车牌区域宽高->计算透视变换矩阵->应用透视变换"""
     rect = pts.astype('float32')
     (tl, tr, br, bl) = rect
     widthA = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
@@ -78,11 +82,15 @@ def four_point_transform(image, pts):                       #透视变换得到�
     warped = cv2.warpPerspective(image, M, (maxWidth, maxHeight))
     return warped
 
-def load_model(weights, device):   #加载检测模型
+def load_model(weights, device):   
+    """作用：加载检测模型
+    步骤：加载模型->返回模型"""
     model = attempt_load(weights, map_location=device)  # load FP32 model
     return model
 
-def scale_coords_landmarks(img1_shape, coords, img0_shape, ratio_pad=None):  #返回到原图坐标
+def scale_coords_landmarks(img1_shape, coords, img0_shape, ratio_pad=None): 
+    """作用：将检测框坐标从缩放后的图像尺寸转换回原始图像尺寸
+    步骤：计算缩放比例->计算填充量->调整坐标->限制坐标范围"""
     # Rescale coords (xyxy) from img1_shape to img0_shape
     if ratio_pad is None:  # calculate from img0_shape
         gain = min(img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1])  # gain  = old / new
@@ -104,7 +112,11 @@ def scale_coords_landmarks(img1_shape, coords, img0_shape, ratio_pad=None):  #�
     coords[:, 7].clamp_(0, img0_shape[0])  # y4
     return coords
 
-def get_plate_rec_landmark(img, xyxy, conf, landmarks, class_num, device, plate_rec_model, is_color=False):  #获取车牌坐标以及四个角点坐标并获取车牌号
+def get_plate_rec_landmark(img, xyxy, conf, landmarks, class_num, device, plate_rec_model, is_color=False): 
+    """作用：对检测到的车牌区域进行文字识别
+    步骤：提取车牌区域坐标->透视变换得到正视图->调用识别模型识别车牌号
+    ->检查是否为危险品车牌（包含"危"或"险"字）"""
+    
     h,w,c = img.shape
     result_dict={}
     tl = 1 or round(0.002 * (h + w) / 2) + 1  # line/font thickness
@@ -141,11 +153,14 @@ def get_plate_rec_landmark(img, xyxy, conf, landmarks, class_num, device, plate_
     result_dict['rec_conf']=rec_prob
     return result_dict
 
-def detect_Recognition_plate(model, orgimg, device, plate_rec_model, img_size, is_color=False):#获取车牌信息
-    # Load model
+def detect_Recognition_plate(model, orgimg, device, plate_rec_model, img_size, is_color=False):    #获取车牌信息
+    """"整个检测识别流程的主函数
+    图像预处理（调整大小、格式转换）->模型推理检测车牌位置->
+    非极大值抑制(NMS)去除重复检测->对每个检测结果进行文字识别->返回所有识别结果"""
+    # 图像预处理（调整大小、格式转换）
     img_size = (640,640)
     # Padded resize
-    img = letterbox(orgimg, img_size, auto=False)[0]
+    img = letterbox(orgimg, img_size, auto=False)[0]   #调整大小
     # Convert
     img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
     img = np.ascontiguousarray(img)
@@ -178,7 +193,9 @@ def detect_Recognition_plate(model, orgimg, device, plate_rec_model, img_size, i
                     result_list.append(result_dict)
     return result_list
 
-def draw_result(orgimg, dict_list, is_color=False):   # 车牌结果画出来
+def draw_result(orgimg, dict_list, is_color=False):   
+    """在图像上绘制检测结果->画矩形框标记车牌位置->
+    在框上显示识别出的车牌号->危险品车牌用红色，普通车牌用绿色"""
     result_str = ""
     for result in dict_list:
         rect_area = result['rect']
@@ -207,9 +224,10 @@ class PlateDetectionNode(Node):
         self.declare_parameter('rec_model_path', 'weights/plate_rec_color.pth')
         self.declare_parameter('is_color', True)
         self.declare_parameter('img_size', 640)
-        self.declare_parameter('input_topic', '/image_raw')
-        self.declare_parameter('output_topic', '/plate_detection_result')
-        self.declare_parameter('result_image_topic', '/plate_detection_result_image')
+        # self.declare_parameter('input_topic', '/image_raw')
+        self.declare_parameter('input_topic', '/camera/camera/color/image_raw')
+        self.declare_parameter('output_topic', '/license_detection_result')
+        self.declare_parameter('result_image_topic', '/license_detection_result_image')
         
         # 获取参数
         detect_model_path = self.get_parameter('detect_model_path').value
@@ -300,8 +318,11 @@ class PlateDetectionNode(Node):
                 for result in dict_list:
                     if result['plate_no']:
                         result_str += f"{result['plate_no']} "
-                
-                if result_str.strip():
+                # 作用：检查去除空白后的字符串是否为空
+                # 如果为空：result_str.strip() 返回空字符串 ""
+                # 在Python中空字符串被视为 False
+                # 如果不为空：返回非空字符串，被视为 True
+                if result_str.strip():# 去除字符串开头和结尾的空白字符（空格、制表符、换行符等）
                     result_msg = String()
                     result_msg.data = result_str.strip()
                     self.result_pub.publish(result_msg)

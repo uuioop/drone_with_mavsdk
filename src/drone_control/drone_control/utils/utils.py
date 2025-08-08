@@ -193,34 +193,6 @@ def calculate_relative_position_target(current_lat: float, current_lon: float, c
     
     return target_lat, target_lon, target_alt
 
-def calculate_simple_relative_position_target(current_lat: float, current_lon: float, current_alt: float,
-                                           relative_n: float, relative_e: float, relative_d: float) -> tuple:
-    """
-    使用简化模型计算相对位置目标（适用于小距离）
-    
-    Args:
-        current_lat: 当前纬度（度）
-        current_lon: 当前经度（度）
-        current_alt: 当前高度（米）
-        relative_n: 北向相对偏移（米）
-        relative_e: 东向相对偏移（米）
-        relative_d: 下向相对偏移（米），正值向下，负值向上
-        
-    Returns:
-        (target_lat, target_lon, target_alt): 目标位置的经纬度和高度
-    """
-    # 简化计算：假设地球是平的
-    # 1度纬度约等于111km，1度经度约等于111km*cos(纬度)
-    lat_offset = relative_n / 111000.0  # 北向偏移转换为纬度偏移
-    lon_offset = relative_e / (111000.0 * math.cos(math.radians(current_lat)))  # 东向偏移转换为经度偏移
-    alt_offset = -relative_d  # 下向偏移转换为高度偏移（注意符号）
-    
-    target_lat = current_lat + lat_offset
-    target_lon = current_lon + lon_offset
-    target_alt = current_alt + alt_offset
-    
-    return target_lat, target_lon, target_alt
-
 def validate_gps_coordinates(lat: float, lon: float, alt: float) -> bool:
     """
     验证GPS坐标的有效性

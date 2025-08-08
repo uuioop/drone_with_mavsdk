@@ -16,34 +16,27 @@ class LicensePlateProcessor:
         try:
             self.logger.info(f"[号牌处理] 收到号牌识别结果: {plate_text}")
             self.recognized_plate = plate_text
-            self._compare_license_plate()
+            return self._compare_license_plate()
+            
         except Exception as e:
             self.logger.error(f"处理号牌识别结果失败: {e}")
             
     def _compare_license_plate(self):
         """号牌比对逻辑"""
-        try:
-            self.logger.info(f"[号牌比对] 开始比对号牌...")
-            self.logger.info(f"[号牌比对] 识别到的号牌: {self.recognized_plate}")
-            self.logger.info(f"[号牌比对] 目标号牌: {self.current_target_plate}")
-            self.logger.info(f"[号牌比对] 号牌数据库: {self.license_plate_database}")
-            
-            # 检查是否与目标号牌匹配
-            if self.current_target_plate and self.recognized_plate:
-                if self.recognized_plate == self.current_target_plate:
-                    self.logger.info(f"[号牌比对] 匹配成功！找到目标号牌: {self.recognized_plate}")
-                    # 这里可以添加匹配成功后的动作
-                else:
-                    self.logger.info(f"[号牌比对] 不匹配，继续搜索...")
-            
-            # 检查是否在数据库中
-            if self.recognized_plate in self.license_plate_database:
-                self.logger.info(f"[号牌比对] 号牌在数据库中: {self.recognized_plate}")
+        # 检查是否与目标号牌匹配
+        if self.current_target_plate and self.recognized_plate:
+            if self.recognized_plate == self.current_target_plate:
+                self.logger.info(f"[号牌比对] 匹配成功！找到目标号牌: {self.recognized_plate}")
+                return True
             else:
-                self.logger.info(f"[号牌比对] 号牌不在数据库中: {self.recognized_plate}")
-                
-        except Exception as e:
-            self.logger.error(f"号牌比对处理失败: {e}")
+                self.logger.info(f"[号牌比对] 不匹配，继续搜索...")
+                return False
+        else:
+            self.logger.info(f"[号牌比对] 未设置目标号牌或识别到的号牌")
+            return False
+            
+            
+
             
     def set_target_license_plate(self, plate_number):
         """设置目标号牌"""
@@ -82,3 +75,13 @@ class LicensePlateProcessor:
     def is_in_database(self, plate_number: str) -> bool:
         """检查号牌是否在数据库中"""
         return plate_number in self.license_plate_database 
+        
+    def is_target_in_database(self) -> bool:
+        """判断目标号牌是否在数据库中"""
+        if not self.current_target_plate:
+            self.logger.warning("[目标检查] 未设置目标号牌")
+            return False
+            
+        is_in_db = self.current_target_plate in self.license_plate_database
+        self.logger.info(f"[目标检查] 目标号牌 '{self.current_target_plate}' 在数据库中: {is_in_db}")
+        return is_in_db 

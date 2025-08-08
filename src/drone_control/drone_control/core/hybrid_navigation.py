@@ -11,11 +11,12 @@ from mavsdk.offboard import OffboardError, PositionNedYaw, VelocityNedYaw
 class HybridNavigationController:
     """混合导航控制类 - 支持任务模式和板外模式切换"""
 
-    def __init__(self, drone, logger, drone_state):
+    def __init__(self, drone, logger, drone_state,license_plate_result):
         self.drone = drone
         self.logger = logger
         self.navigation_phase = "IDLE"  # IDLE, MISSION, OFFBOARD
         self.drone_state = drone_state
+        self.license_plate_result=license_plate_result
 
     async def navigate_to_position(self):
         """混合导航：先任务模式，到达后切换板外模式"""
@@ -53,7 +54,7 @@ class HybridNavigationController:
                     cur_lat,
                     cur_lon,
                     tar_alt,
-                    3,
+                    1,
                     False,  # 纬度, 经度, 高度, 速度, 接受
                     float("nan"),
                     float("nan"),  # 相机动作参数
@@ -71,7 +72,7 @@ class HybridNavigationController:
                     tar_lat,
                     tar_lon,
                     tar_alt,
-                    4,
+                    1,
                     True,  # 纬度, 经度, 高度, 速度, 接受
                     float("nan"),
                     float("nan"),  # 相机动作参数
@@ -86,6 +87,11 @@ class HybridNavigationController:
             )
             mission_plan = MissionPlan(mission_items)
             # 设置任务完成后不自动返航
+            # await self.drone.action.set_home_position(
+            #     cur_lat,
+            #     cur_lon
+            #     position.absolute_altitude_m
+            # )
             await self.drone.mission.set_return_to_launch_after_mission(False)
             # 上传任务
             await self.drone.mission.upload_mission(mission_plan)
@@ -111,10 +117,11 @@ class HybridNavigationController:
         """
         self.logger.info("[任务模式] 开始位置误差检测...")
         # 位置误差阈值
-        position_tolerance = 5  
-        altitude_tolerance = 2  
+        position_tolerance = 2 
+        altitude_tolerance = 0.5
 
         while True:
+            
             # 获取当前位置
             current_position = self.drone_state.current_position
             current_lat = current_position.latitude_deg
@@ -131,23 +138,26 @@ class HybridNavigationController:
                 current_lat, current_lon, target_lat, target_lon
             )
             altitude_error = abs(current_alt - target_alt)
-
-            # 检查是否达到目标精度
-            if (
-                horizontal_error <= position_tolerance
-                and altitude_error <= altitude_tolerance
-            ):
-                self.logger.info(
-                    f"[任务模式] 位置精度达到要求！水平误差: {horizontal_error:.2f}m, 高度误差: {altitude_error:.2f}m"
-                )
-                self.drone_state.target_position = None
-                await self.drone.action.hold()
-                self.logger.info("6666666666666666666666666666666666666")
-                await asyncio.sleep(10)
+            mission_finished = await self.drone.mission.is_mission_finished()
+            if mission_finished:
+                self.logger.info("任务结束")  
                 break
-            else:
-                # self.logger.info(f"[任务模式] 位置精度未达到要求，等待1秒...")
-                await asyncio.sleep(1)  # 延时1秒
+            
+            # 检查是否达到目标精度
+            # if (
+            #     horizontal_error <= position_tolerance
+            #     and altitude_error <= altitude_tolerance
+            # ):
+            #     self.logger.info(
+            #         f"[任务模式] 位置精度达到要求！水平误差: {horizontal_error:.2f}m, 高度误差: {altitude_error:.2f}m"
+            #     )
+            #     self.drone_state.target_position = None
+            #     await self.drone.action.hold()
+            #     self.logger.info("任务结束")             
+            #     break
+            # else:
+            #     self.logger.info(f"[任务模式] 位置精度未达到要求水平误差: {horizontal_error:.2f}m, 高度误差: {altitude_error:.2f}m")
+            #     await asyncio.sleep(1)  # 延时1秒
 
     async def start_offboard_mode(self):
         """开始板外模式"""
@@ -161,9 +171,8 @@ class HybridNavigationController:
         cur_lat = cur_pos.latitude_deg
         cur_lon = cur_pos.longitude_deg
         cur_alt = cur_pos.absolute_altitude_m
-        cur_yaw = cur_pos.yaw_deg
         north,east,down = calculate_ned_from_origin(home_lat, home_lon, home_alt, cur_lat, cur_lon, cur_alt)
-        await self.drone.offboard.set_position_ned(PositionNedYaw(north, east, down, cur_yaw))
+        await self.drone.offboard.set_position_ned(PositionNedYaw(north, east, down, 0))
         try:
             await self.drone.offboard.start()
         except OffboardError as error:

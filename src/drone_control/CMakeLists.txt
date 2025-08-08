@@ -14,13 +14,13 @@ find_package(geometry_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "interface/Nav.srv"
   "interface/Pos.srv"
+  "interface/LicenseInfo.srv"
   DEPENDENCIES geometry_msgs
 )
 
 # 安装Python可执行文件
 install(PROGRAMS
   scripts/drone_control_node
-  scripts/test_offboard_mode.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

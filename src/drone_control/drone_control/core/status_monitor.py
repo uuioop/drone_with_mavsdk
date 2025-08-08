@@ -42,9 +42,9 @@ class DroneStatusMonitor:
                     self.logger.error(f"状态监控异常: {e}")
             else:
                 # 未连接状态处理 - 减少日志频率
-                self.logger.debug("等待连接...")
+                self.logger.debug("等待连接...", throttle_duration_sec=1)
             
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
     
     async def _check_connection(self):
         """检查无人机连接状态"""
@@ -122,15 +122,15 @@ class DroneStatusMonitor:
         else:
             self.logger.info(f"距离目标: {distance:.2f}m, 高度差: {altitude_diff:.2f}m", throttle_duration_sec=3)
     
-    async def _monitor_health(self):
-        """监控系统健康状态"""
-        try:
-            async for health in self.drone.telemetry.health():
-                status = f"系统状态: 可解锁={health.is_armable} GPS锁定={health.is_global_position_ok}"
-                self.logger.info(status, throttle_duration_sec=5)
-                break
-        except Exception as e:
-            self.logger.warn(f"健康状态监控异常: {e}")
+    # async def _monitor_health(self):
+    #     """监控系统健康状态"""
+    #     try:
+    #         async for health in self.drone.telemetry.health():
+    #             status = f"系统状态: 可解锁={health.is_armable} GPS锁定={health.is_global_position_ok}"
+    #             self.logger.info(status, throttle_duration_sec=5)
+    #             break
+    #     except Exception as e:
+    #         self.logger.warn(f"健康状态监控异常: {e}")
     
     async def _monitor_flight_mode(self):
         """监控飞行模式"""
@@ -148,7 +148,8 @@ class DroneStatusMonitor:
         """监控GPS位置"""
         try:
             async for position in self.drone.telemetry.position():
-                self.drone_state.update_position(position)
+                if position != self.drone_state.current_position:
+                    self.drone_state.update_position(position)
                 
                 # 发布实时位置信息
                 await self._publish_position_info(position)

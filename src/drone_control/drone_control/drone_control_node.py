@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-无人机控制节点主文件 - 支持任务模式
+无人机控制节点主文件 - 支持板外模式导航
 使用模块化结构和自定义Nav.srv服务
 """
 
@@ -18,27 +18,35 @@ from std_msgs.msg import String
 from drone_control.srv import Nav, Pos
 
 # 导入核心模块
-from drone_control.core import DroneState, HybridNavigationController, LicensePlateProcessor, DroneStatusMonitor
+from drone_control.core import DroneState, LicensePlateProcessor, DroneStatusMonitor
+from drone_control.core.offboard_navigation import OffboardNavigationController
 from drone_control.utils.utils import calculate_relative_position_target, validate_gps_coordinates
 
 
 
 class DroneControlNode(Node):
-    """无人机控制节点主类 - 支持任务模式"""
+    """无人机控制节点主类 - 支持板外模式导航"""
     def __init__(self):
         super().__init__('drone_control_node')
         self.get_logger().info("无人机控制节点启动中...")
         
         # 初始化组件
+        # self.drone = System(mavsdk_server_address='localhost', port=50051)
         self.drone = System()
         self.drone_state = DroneState()
-        self.system_address = "udp://:14540"
+        # serial_port = "/dev/ttyACM0"
+        # baud_rate = 115200
+        # self.system_address=f"serial://{serial_port}:{baud_rate}"
+        self.system_address = "udp://0.0.0.0:14540"
         
-        # 任务模式状态
-        self.hybrid_active = False
+        # 板外模式状态
+        self.offboard_active = False
+
+        # 初始化号牌识别结果
+        self.license_plate_result = False
 
         # 初始化控制器
-        self.hybrid_navigation_controller = HybridNavigationController(self.drone, self.get_logger(), self.drone_state)
+        self.offboard_navigation_controller = OffboardNavigationController(self.drone, self.get_logger(), self.drone_state, self.license_plate_result)
         self.license_plate_processor = LicensePlateProcessor(self.get_logger())
         
         # 创建独立事件循环
@@ -59,25 +67,20 @@ class DroneControlNode(Node):
 
     def _setup_services(self):
         """初始化ROS服务"""
-        # self.connect_srv = self.create_service(
-        #     Trigger, 'drone/connect', self._sync_connect_callback)
-        # self.arm_srv = self.create_service(
-        #     Trigger, 'drone/arm', self._sync_arm_callback)
-        # self.takeoff_srv = self.create_service(
-        #     Empty, 'drone/takeoff', self._sync_takeoff_callback)
-        # self.land_srv = self.create_service(
-        #     Empty, 'drone/land', self._sync_land_callback)
-        # 使用自定义Nav.srv 和Pos.srv 服务类型
         self.relative_navigation_srv = self.create_service(
             Pos, 'drone/relative_navigation', self._sync_relative_navigation_callback)
-        self.hybrid_navigation_srv = self.create_service(
-            Nav, 'drone/hybrid_navigation', self._sync_hybrid_navigation_callback)
+        self.absolute_navigation_srv = self.create_service(
+            Nav, 'drone/absolute_navigation', self._sync_absolute_navigation_callback)
+        
+        # 设置目标号牌
+        # self.license_plate_srv = self.create_service(
+        #     String, 'drone/license_plate_info', self._license_plate_info_callback)
 
     def _setup_subscriptions(self):
         """设置订阅和发布"""
         # 订阅
-        self.license_plate_sub = self.create_subscription(
-            String, 'ocr/license_plate_result', self._license_plate_callback, 10)
+        # self.license_plate_sub = self.create_subscription(
+        #     String, '/license_detection_result', self._license_plate_callback, 10)
         
         # 发布
         self.position_pub = self.create_publisher(String, 'drone/position', 10)
@@ -86,7 +89,12 @@ class DroneControlNode(Node):
         """启动MAVSDK事件循环线程"""
         def run_loop():
             asyncio.set_event_loop(self.loop)
-            self.loop.run_until_complete(self.status_monitor.start_monitoring())
+            self.loop.run_until_complete(
+                asyncio.gather(
+                    self._connect_to_drone(),
+                    self.status_monitor.start_monitoring()
+                )
+            )
         
         self.loop_thread = threading.Thread(target=run_loop, daemon=True)
         self.loop_thread.start()
@@ -94,10 +102,11 @@ class DroneControlNode(Node):
     async def _connect_to_drone(self):
         """连接到无人机"""       
         self.get_logger().info(f"尝试连接到无人机: {self.system_address}")
+        self.get_logger().info("等待无人机连接...")
         await self.drone.connect(system_address=self.system_address)
+        # await self.drone.connect()
         # 获取初始位置
         await self._get_home_position()
-        self.get_logger().info("等待无人机连接...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:
                 self.get_logger().info("成功连接到无人机!")
@@ -132,10 +141,10 @@ class DroneControlNode(Node):
             response.message = "无人机起飞状态不满足"
             return response
         
-        # 检查任务模式是否完成
-        if self.hybrid_active:
+        # 检查板外模式是否完成
+        if self.offboard_active:
             response.success = False
-            response.message = "混合导航模式未完成，请先等待混合导航模式完成"
+            response.message = "板外导航模式未完成，请先等待板外导航模式完成"
             return response
         
         try:
@@ -143,15 +152,13 @@ class DroneControlNode(Node):
             current_position = self.drone_state.current_position
             if current_position is None:
                 response.success = False
-                response.message = "无法获取当前位置"
+                response.message = "无法获取当前位置，请等待GPS信号稳定"
+                self.get_logger().error("当前位置为空，请检查GPS连接")
                 return response
-            
             # 从Pos.srv消息中获取NED相对偏移
             relative_n = request.north  # 北向偏移（米）
             relative_e = request.east  # 东向偏移（米）
-            relative_d = request.down  # 下向偏移（米）
-            
-            self.get_logger().info(f"[相对导航] 当前位置: 纬度={current_position.latitude_deg:.6f}, 经度={current_position.longitude_deg:.6f}, 高度={current_position.absolute_altitude_m:.2f}m")
+            relative_d = request.down  # 下向偏移（米）           
             self.get_logger().info(f"[相对导航] NED相对偏移: 北={relative_n:.2f}m, 东={relative_e:.2f}m, 下={relative_d:.2f}m")
             
             # 使用工具函数计算目标位置
@@ -174,10 +181,10 @@ class DroneControlNode(Node):
                 'absolute_altitude_m': target_alt
             })()
 
-            # 使用混合导航控制器进行相对位置导航
-            self.hybrid_active = True
-            await self.hybrid_navigation_controller.navigate_to_position()
-            self.hybrid_active = False
+            # 使用板外导航控制器进行相对位置导航
+            self.offboard_active = True
+            await self.offboard_navigation_controller.navigate_to_position(target_north=relative_n,target_east=relative_e,target_down=relative_d)
+            self.offboard_active = False
             
             response.success = True
             response.message = f"相对导航完成: NED偏移({relative_n:.2f}, {relative_e:.2f}, {relative_d:.2f})"
@@ -189,8 +196,8 @@ class DroneControlNode(Node):
             self.get_logger().error(response.message)
         return response
 
-    async def _hybrid_navigation_callback(self, request):
-        """处理混合导航请求 - 先任务模式，后板外模式"""
+    async def _absolute_navigation_callback(self, request):
+        """处理绝对位置导航请求 - 使用板外模式"""
         response = Nav.Response()
         
         # 检查解锁状态
@@ -199,10 +206,10 @@ class DroneControlNode(Node):
             response.message = "无人机起飞状态不满足"
             return response
         
-        # 检查任务模式是否完成
-        if self.hybrid_active:
+        # 检查板外模式是否完成
+        if self.offboard_active:
             response.success = False
-            response.message = "混合导航模式未完成，请先等待混合导航模式完成"
+            response.message = "板外导航模式未完成，请先等待板外导航模式完成"
             return response
         
         try:
@@ -212,9 +219,9 @@ class DroneControlNode(Node):
             alt = request.absolute_altitude_m
             
             # 验证坐标参数
-            if not (-90 <= lat <= 90) or not (-180 <= lon <= 180) or alt < 0:
+            if not validate_gps_coordinates(lat, lon, alt):
                 response.success = False
-                response.message = "坐标参数无效：纬度应在-90到90之间，经度应在-180到180之间，高度应大于0"
+                response.message = "计算后的坐标参数无效"
                 return response
             
             self.drone_state.target_position = type('Position', (), {
@@ -223,25 +230,38 @@ class DroneControlNode(Node):
                 'absolute_altitude_m': alt
             })()
 
-            self.get_logger().info(f"[混合导航] 开始混合导航到: 纬度={lat:.6f}, 经度={lon:.6f}, 高度={alt:.2f}m")
+            self.get_logger().info(f"[绝对导航] 开始绝对位置导航到: 纬度={lat:.6f}, 经度={lon:.6f}, 高度={alt:.2f}m")
             
-            self.hybrid_active = True
-            # 使用混合导航控制器
-            await self.hybrid_navigation_controller.navigate_to_position()
-            self.hybrid_active = False
+            self.offboard_active = True
+            # 使用板外导航控制器
+            await self.offboard_navigation_controller.navigate_to_position()
+            self.offboard_active = False
             response.success = True
-            response.message = f"混合导航完成: 纬度={lat:.6f}, 经度={lon:.6f}, 高度={alt:.2f}m"
+            response.message = f"绝对位置导航完成: 纬度={lat:.6f}, 经度={lon:.6f}, 高度={alt:.2f}m"
             self.get_logger().info(response.message)
             
         except Exception as e:
             response.success = False
-            response.message = f"混合导航错误: {str(e)}"
+            response.message = f"绝对位置导航错误: {str(e)}"
             self.get_logger().error(response.message)
         return response
 
-    def _license_plate_callback(self, msg):
-        """处理号牌识别结果"""
-        self.license_plate_processor.process_license_plate(msg.data)
+    # def _license_plate_info_callback(self, request):
+    #     """处理目标号牌信息"""
+    #     response = String.Response()
+    #     target_plate = request.data
+    #     if target_plate.strip() and self.license_plate_processor.is_in_database(target_plate):
+    #         self.license_plate_processor.set_target_license_plate(target_plate)
+    #         self.get_logger().info(f"目标号牌设置为: {target_plate}")
+    #         response.message = f"目标号牌设置为: {target_plate}"
+    #     else:
+    #         self.get_logger().error(f"目标号牌不存在: {target_plate}")
+    #         response.message = f"目标号牌不存在: {target_plate}"
+    #     return response
+
+    # def _license_plate_callback(self, msg):
+    #     """获取号牌识别结果"""
+    #     self.license_plate_result = self.license_plate_processor.process_license_plate(msg.data)
 
     # ========= 同步桥接方法 =========
 
@@ -266,11 +286,11 @@ class DroneControlNode(Node):
             response.message = f"相对导航超时: {str(e)}"
             return response
 
-    def _sync_hybrid_navigation_callback(self, request, response):
+    def _sync_absolute_navigation_callback(self, request, response):
         try:
             future = asyncio.run_coroutine_threadsafe(
-                self._hybrid_navigation_callback(request), self.loop)
-            result = future.result(timeout=60)  # 混合导航需要更长时间
+                self._absolute_navigation_callback(request), self.loop)
+            result = future.result(timeout=60)  # 绝对位置导航需要更长时间
             
             # 确保响应对象被正确设置
             if result is not None:
@@ -278,12 +298,12 @@ class DroneControlNode(Node):
                 response.message = result.message
             else:
                 response.success = False
-                response.message = "混合导航回调返回空结果"
+                response.message = "绝对位置导航回调返回空结果"
                 
             return response
         except Exception as e:
             response.success = False
-            response.message = f"混合导航超时: {str(e)}"
+            response.message = f"绝对位置导航超时: {str(e)}"
             return response
 
     def destroy_node(self):
@@ -312,10 +332,6 @@ class DroneControlNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = DroneControlNode()
-
-    # 在事件循环中执行自动连接
-    asyncio.run_coroutine_threadsafe(node._connect_to_drone(), node.loop)
-
     executor = MultiThreadedExecutor()
     rclpy.spin(node, executor=executor)
     node.destroy_node()
