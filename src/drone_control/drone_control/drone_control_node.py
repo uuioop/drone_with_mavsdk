@@ -38,9 +38,6 @@ class DroneControlNode(Node):
         # baud_rate = 115200
         # self.system_address=f"serial://{serial_port}:{baud_rate}"
         self.system_address = "udp://0.0.0.0:14540"
-        
-        # 板外模式状态
-        self.offboard_active = False
 
         # 初始化号牌识别结果
         self.license_plate_result = False
@@ -48,6 +45,14 @@ class DroneControlNode(Node):
         # 初始化控制器
         self.offboard_navigation_controller = OffboardNavigationController(self.drone, self.get_logger(), self.drone_state, self.license_plate_result)
         self.license_plate_processor = LicensePlateProcessor(self.get_logger())
+
+        # 初始化用于处理连续识别的变量
+        self.detection_timestamps = []  # 存储最近识别消息的时间戳
+        self.successful_recognition_count = 0  # 连续识别成功次数
+        self.last_recognition_time = self.get_clock().now()
+
+        # 用于比对的正确消息，暂时设为 None
+        self.correct_message_content = '闽DA01010231'
         
         # 创建独立事件循环
         self.loop = asyncio.new_event_loop()
@@ -79,11 +84,13 @@ class DroneControlNode(Node):
     def _setup_subscriptions(self):
         """设置订阅和发布"""
         # 订阅
-        # self.license_plate_sub = self.create_subscription(
-        #     String, '/license_detection_result', self._license_plate_callback, 10)
+        # 订阅号牌识别结果
+        self.license_plate_sub = self.create_subscription(
+            String, '/license_detection_result', self._license_detection_callback, 10)
         
         # 发布
         self.position_pub = self.create_publisher(String, 'drone/position', 10)
+        self.drone_status_pub = self.create_publisher(String, '/drone_status', 10)
 
     def _start_event_loop(self):
         """启动MAVSDK事件循环线程"""
@@ -182,9 +189,9 @@ class DroneControlNode(Node):
             })()
 
             # 使用板外导航控制器进行相对位置导航
-            self.offboard_active = True
+            self.drone_state.update_navigating(True)
             await self.offboard_navigation_controller.navigate_to_position(target_north=relative_n,target_east=relative_e,target_down=relative_d)
-            self.offboard_active = False
+            self.drone_state.update_navigating(False)
             
             response.success = True
             response.message = f"相对导航完成: NED偏移({relative_n:.2f}, {relative_e:.2f}, {relative_d:.2f})"
@@ -194,6 +201,7 @@ class DroneControlNode(Node):
             response.success = False
             response.message = f"相对导航错误: {str(e)}"
             self.get_logger().error(response.message)
+            self.drone_state.update_navigating(False)
         return response
 
     async def _absolute_navigation_callback(self, request):
@@ -232,10 +240,10 @@ class DroneControlNode(Node):
 
             self.get_logger().info(f"[绝对导航] 开始绝对位置导航到: 纬度={lat:.6f}, 经度={lon:.6f}, 高度={alt:.2f}m")
             
-            self.offboard_active = True
+            self.drone_state.update_navigating(True)
             # 使用板外导航控制器
             await self.offboard_navigation_controller.navigate_to_position()
-            self.offboard_active = False
+            self.drone_state.update_navigating(False)
             response.success = True
             response.message = f"绝对位置导航完成: 纬度={lat:.6f}, 经度={lon:.6f}, 高度={alt:.2f}m"
             self.get_logger().info(response.message)
@@ -244,6 +252,7 @@ class DroneControlNode(Node):
             response.success = False
             response.message = f"绝对位置导航错误: {str(e)}"
             self.get_logger().error(response.message)
+            self.drone_state.update_navigating(False)
         return response
 
     # def _license_plate_info_callback(self, request):
@@ -259,9 +268,46 @@ class DroneControlNode(Node):
     #         response.message = f"目标号牌不存在: {target_plate}"
     #     return response
 
-    # def _license_plate_callback(self, msg):
-    #     """获取号牌识别结果"""
-    #     self.license_plate_result = self.license_plate_processor.process_license_plate(msg.data)
+    def _license_detection_callback(self, msg):
+        """处理来自/license_detection_result的连续消息"""
+        # 检查收到的消息是否与预设的正确消息匹配
+        is_correct_detection = (msg.data == self.correct_message_content)
+
+        if is_correct_detection:
+            current_time = self.get_clock().now()
+            self.detection_timestamps.append(current_time)
+
+            # 清理5秒前的旧时间戳
+            five_seconds_ago = current_time - rclpy.duration.Duration(seconds=5)
+            self.detection_timestamps = [
+                ts for ts in self.detection_timestamps if ts > five_seconds_ago
+            ]
+
+            # 检查在过去5秒内是否收到10条或更多消息
+            if len(self.detection_timestamps) >= 10:
+                self.successful_recognition_count += 1
+                status_msg = String()
+                
+                # 从drone_state获取位置信息
+                position = self.drone_state.current_position
+
+                # 确保位置信息有效后再发布
+                if position:
+                    status_msg.data = (
+                        f"第{self.successful_recognition_count}次识别成功！" \
+                        f"当前位置：纬度 {position.latitude_deg:.6f}, 经度 {position.longitude_deg:.6f}, " \
+                        f"相对高度 {position.relative_altitude_m:.2f}m, 绝对高度 {position.absolute_altitude_m:.2f}m"
+                    )
+                    self.drone_status_pub.publish(status_msg)
+                    self.get_logger().info(f'发布 /drone_status: "{status_msg.data}"')
+                else:
+                    self.get_logger().warn("识别成功，但无法获取当前位置信息，无法发布/drone_status。")
+
+                # 重置时间戳列表以防重复触发
+                self.detection_timestamps = []
+        else:
+            # 如果消息不正确，重置计数器
+            self.detection_timestamps = []
 
     # ========= 同步桥接方法 =========
 

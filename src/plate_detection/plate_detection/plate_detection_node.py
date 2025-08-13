@@ -224,8 +224,8 @@ class PlateDetectionNode(Node):
         self.declare_parameter('rec_model_path', 'weights/plate_rec_color.pth')
         self.declare_parameter('is_color', True)
         self.declare_parameter('img_size', 640)
-        # self.declare_parameter('input_topic', '/image_raw')
-        self.declare_parameter('input_topic', '/camera/camera/color/image_raw')
+        self.declare_parameter('input_topic', '/image_raw')
+        # self.declare_parameter('input_topic', '/camera/camera/color/image_raw')
         self.declare_parameter('output_topic', '/license_detection_result')
         self.declare_parameter('result_image_topic', '/license_detection_result_image')
         

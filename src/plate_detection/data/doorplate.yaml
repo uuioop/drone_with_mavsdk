@@ -1,0 +1,6 @@
+names:
+- doorplate
+nc: 1
+path: ./output
+train: images
+val: images

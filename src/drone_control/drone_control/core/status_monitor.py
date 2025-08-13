@@ -27,24 +27,38 @@ class DroneStatusMonitor:
         
     async def start_monitoring(self):
         """开始监控无人机状态"""
-        self.logger.info("开始监控无人机状态...")
-        
+        self.logger.info("开始并行监控无人机状态...")
+        await asyncio.gather(
+            self._main_monitoring_loop(),
+            self._mission_progress_loop()
+        )
+
+    async def _main_monitoring_loop(self):
+        """主监控循环，高频更新"""
         while True:
             if self.drone_state.connected:
-                try:                  
-                    # 执行监控任务（分别处理异常）
-                    # await self._monitor_health()
+                try:
                     await self._monitor_flight_mode()
                     await self._monitor_position()
-                    await self._monitor_attitude()
-                    # await self._monitor_mission_progress(self.drone_state.current_position, self.drone_state.target_position)                    
+                    await self._monitor_velocity()
                 except Exception as e:
-                    self.logger.error(f"状态监控异常: {e}")
+                    self.logger.error(f"主状态监控异常: {e}")
             else:
-                # 未连接状态处理 - 减少日志频率
                 self.logger.debug("等待连接...", throttle_duration_sec=1)
-            
             await asyncio.sleep(0.1)
+
+    async def _mission_progress_loop(self):
+        """任务进度监控循环，低频更新"""
+        while True:
+            if self.drone_state.connected:
+                try:
+                    if self.drone_state.navigating:
+                        await self._monitor_mission_progress(
+                            self.drone_state.current_position, self.drone_state.target_position
+                        )
+                except Exception as e:
+                    self.logger.error(f"任务进度监控异常: {e}")
+            await asyncio.sleep(1.0)
     
     async def _check_connection(self):
         """检查无人机连接状态"""
@@ -157,6 +171,15 @@ class DroneStatusMonitor:
         except Exception as e:
             self.logger.warn(f"位置监控异常: {e}")
     
+    async def _monitor_velocity(self):
+        """监控速度"""
+        try:
+            async for velocity in self.drone.telemetry.velocity_ned():
+                self.drone_state.update_velocity(velocity)
+                break
+        except Exception as e:
+            self.logger.warn(f"速度监控异常: {e}")
+
     async def _monitor_attitude(self):
         """监控姿态"""
         try:

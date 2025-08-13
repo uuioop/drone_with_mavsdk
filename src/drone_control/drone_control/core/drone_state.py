@@ -9,12 +9,15 @@ class DroneState:
     """无人机状态管理类"""
     def __init__(self):
         self.connected = False
+        self.navigating = False
         self.current_flight_mode = "UNKNOWN"
         self.current_position = None
         self.target_position = None
         self.home_position = None
         self.current_attitude = None
         self.target_attitude = None
+        self.current_velocity = None
+        
     
     def update_connection(self,connected):
         if not self.connected == connected:
@@ -43,6 +46,14 @@ class DroneState:
     def update_target_attitude(self, attitude):
         """更新目标姿态"""
         self.target_attitude = attitude
+
+    def update_velocity(self, velocity):
+        """更新速度信息"""
+        self.current_velocity = velocity
+    
+    def update_navigating(self, navigating):
+        """更新导航状态"""
+        self.navigating = navigating
         
     def is_ready_for_flight(self) -> bool:
         """检查是否准备好飞行"""

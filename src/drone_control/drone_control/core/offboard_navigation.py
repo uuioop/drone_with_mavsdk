@@ -45,7 +45,7 @@ class OffboardNavigationController:
             await self.fly_to_target_position(target_north, target_east)
 
             # 观察四周环境
-            self.observe_environment()
+            await self.observe_environment()
 
             await self.stop_offboard_mode()
 
@@ -80,7 +80,8 @@ class OffboardNavigationController:
         self.logger.info("[板外导航] 开始观察四周环境")
 
         # 旋转180度观察
-        await self.drone.offboard.set_velocity_body(VelocityBodyYawspeed(0.0, 0.0, 0.0, 30.0))
+        await self.drone.offboard.set_velocity_body(VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
+        
         await asyncio.sleep(10)
 
 
