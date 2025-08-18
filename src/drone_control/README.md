@@ -224,8 +224,85 @@ sudo kill -9 <PID>
 - **日志记录**: 使用self.get_logger()记录关键信息
 - **状态管理**: 通过DroneState类管理全局状态
 
+## 精准降落功能
+
+本项目已集成基于ArUco标记的精准降落功能，移植自C++版本的PrecisionLand节点。
+
+### 功能特性
+- **🎯 精准定位**: 基于ArUco标记的视觉定位
+- **🔄 状态机控制**: Search → Approach → Descend → Finished
+- **📡 PID控制**: XY方向速度的精确控制
+- **🌀 搜索模式**: 目标丢失时的螺旋搜索
+- **🛡️ 安全回退**: 精准降落失败时自动切换到普通降落
+
+### 使用方法
+
+#### 1. 基本配置
+```python
+from drone_control.core.aruco_tracker import ArucoTracker
+from drone_control.core.offboard_navigation import OffboardNavigationController
+
+# 创建ArUco跟踪器
+aruco_tracker = ArucoTracker(drone, logger, drone_state)
+
+# 设置ArUco参数
+aruco_tracker.set_aruco_parameters(
+    aruco_id=0,        # 目标标记ID
+    dictionary=2,      # DICT_4X4_250
+    marker_size=0.5    # 标记尺寸(米)
+)
+
+# 设置相机参数 (需要相机标定)
+camera_matrix = np.array([[615.0, 0.0, 320.0],
+                         [0.0, 615.0, 240.0],
+                         [0.0, 0.0, 1.0]])
+dist_coeffs = np.array([0.1, -0.2, 0.0, 0.0, 0.0])
+aruco_tracker.set_camera_parameters(camera_matrix, dist_coeffs)
+
+# 创建带精准降落的导航控制器
+nav_controller = OffboardNavigationController(
+    drone, logger, drone_state, license_plate_result, aruco_tracker
+)
+```
+
+#### 2. 参数调整
+```python
+# 调整精准降落参数
+nav_controller.precision_land.set_parameters(
+    descent_vel=0.8,        # 下降速度 (m/s)
+    vel_p_gain=1.2,         # P增益
+    vel_i_gain=0.1,         # I增益
+    max_velocity=2.0,       # 最大速度 (m/s)
+    target_timeout=5.0      # 目标超时时间 (s)
+)
+```
+
+#### 3. 执行精准降落
+```python
+# 导航到目标位置会自动使用精准降落
+await nav_controller.navigate_to_position(
+    target_north=10.0,
+    target_east=5.0, 
+    target_down=-8.0
+)
+```
+
+### 配置文件
+参考 `config/precision_land_config.yaml` 进行详细配置。
+
 ### 测试
 ```bash
+# 安装测试依赖
+pip3 install pytest pytest-asyncio
+
+# 运行单元测试
+python3 -m pytest test/test_precision_land.py -v
+
+# 运行集成测试
+python3 -m pytest test/test_integration.py -v
+
+# 运行所有测试
+python3 -m pytest test/ -v
 
 # 手动测试服务
 ros2 service call /drone/relative_navigation drone_control/srv/Pos "{north: 1.0, east: 0.0, down: 0.0}"

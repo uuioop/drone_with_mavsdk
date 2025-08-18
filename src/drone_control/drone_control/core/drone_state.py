@@ -9,23 +9,54 @@ class DroneState:
     """无人机状态管理类"""
     def __init__(self):
         self.connected = False
-        self.navigating = False
+        self._landed = False
+        self._search_start = False
         self.current_flight_mode = "UNKNOWN"
         self.current_position = None
         self.target_position = None
+
         self.home_position = None
-        self.current_attitude = None
-        self.target_attitude = None
-        self.current_velocity = None
-        
+        # NED坐标系下的当前位置
+        self.current_position_ned = None
+
+        self.current_velocity_ned = None
+
+        # 四元数姿态
+        self._attitude_quaternion = None
     
     def update_connection(self,connected):
         if not self.connected == connected:
             self.connected = connected
 
+    @property
+    def landed(self):
+        return self._landed
+
+    @landed.setter
+    def landed(self,is_landed: bool):
+        if not self._landed == is_landed:
+            self._landed = is_landed
+
+    @property
+    def search_started(self):
+        return self._search_start
+
+    @search_started.setter
+    def search_started(self,is_search_started: bool):
+        if not self._search_start == is_search_started:
+            self._search_start = is_search_started
+
+    @property
+    def attitude(self):
+        return self._attitude_quaternion
+    
+    @attitude.setter
+    def attitude(self,attitude_quaternion):
+        self._attitude_quaternion=attitude_quaternion
+
     def update_flight_mode(self, mode: str):
         """更新飞行模式"""
-        self.current_flight_mode = mode
+        self.current_flight_mode = mode 
         
     def update_position(self, position):
         """更新当前位置"""
@@ -34,26 +65,10 @@ class DroneState:
     def update_target_position(self, position):
         """更新目标位置"""
         self.target_position = position
-        
+
     def update_home_position(self, position):
         """更新起始位置"""
         self.home_position = position
-        
-    def update_attitude(self, attitude):
-        """更新姿态信息"""
-        self.current_attitude = attitude
-        
-    def update_target_attitude(self, attitude):
-        """更新目标姿态"""
-        self.target_attitude = attitude
-
-    def update_velocity(self, velocity):
-        """更新速度信息"""
-        self.current_velocity = velocity
-    
-    def update_navigating(self, navigating):
-        """更新导航状态"""
-        self.navigating = navigating
         
     def is_ready_for_flight(self) -> bool:
         """检查是否准备好飞行"""
@@ -85,5 +100,10 @@ class DroneState:
 
         # 计算目标位置相对于起始位置的NED坐标
         return calculate_ned_from_origin(home_lat, home_lon, home_alt, target_lat, target_lon, target_alt)
+
+    def get_current_time(self) -> float:
+        """获取当前时间戳（秒）"""
+        import time
+        return time.time()
 
 

@@ -4,13 +4,15 @@
 """
 
 from .drone_state import DroneState
-from .attitude import AttitudeController
 from .license_plate import LicensePlateProcessor
 from .status_monitor import DroneStatusMonitor
+from .precision_land import PrecisionLand
+from .offboard_navigation import OffboardNavigationController
 
 __all__ = [
     'DroneState',
-    'AttitudeController',
     'LicensePlateProcessor',
-    'DroneStatusMonitor'
-] 
+    'DroneStatusMonitor',
+    'PrecisionLand',
+    'OffboardNavigationController'
+]

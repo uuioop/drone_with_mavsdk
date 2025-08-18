@@ -2,7 +2,7 @@
 
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, ExecuteProcess
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.conditions import IfCondition
@@ -96,42 +96,40 @@ def generate_launch_description():
         ]
     )
     
-    # 4. Intel RealSense D435节点（已注释）
-    # 注意：需要安装realsense-ros包
-    # sudo apt install ros-humble-realsense2-camera
-    realsense_launch_file = PathJoinSubstitution([
-        get_package_share_directory('realsense2_camera'),
-        'launch',
-        'rs_launch.py'
-    ])
+    # 4. Intel RealSense D435节点 (暂时注释，因为缺少 realsense2_camera 包)
+    # realsense_launch_file = PathJoinSubstitution([
+    #     get_package_share_directory('realsense2_camera'),
+    #     'launch',
+    #     'rs_launch.py'
+    # ])
     
-    realsense_node = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([realsense_launch_file]),
-        condition=IfCondition(use_realsense),
-        launch_arguments={
-            'camera_type': 'D435',
-            'enable_color': 'true',
-            'enable_depth': 'false',  # 只启用彩色图像
-            'enable_sync': 'false',
-            'color_width': '640',
-            'color_height': '480',
-            'color_fps': '30'
-        }.items()
-    )
+    # realsense_node = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource([realsense_launch_file]),
+    #     condition=IfCondition(use_realsense),
+    #     launch_arguments={
+    #         'camera_type': 'D435',
+    #         'enable_color': 'true',
+    #         'enable_depth': 'false',  # 只启用彩色图像
+    #         'enable_sync': 'false',
+    #         'color_width': '640',
+    #         'color_height': '480',
+    #         'color_fps': '30'
+    #     }.items()
+    # )
     
     # 5. 图像话题重映射节点（用于RealSense）
     # 当使用RealSense时，将彩色图像话题重映射到车牌检测节点期望的话题
-    image_remap_node = Node(
-        package='topic_tools',
-        executable='relay',
-        name='image_relay',
-        output='screen',
-        condition=IfCondition(use_realsense),
-        parameters=[{
-            'input_topic': '/camera/color/image_raw',
-            'output_topic': '/image_raw'
-        }]
-    )
+    # image_remap_node = Node(
+    #     package='topic_tools',
+    #     executable='relay',
+    #     name='image_relay',
+    #     output='screen',
+    #     condition=IfCondition(use_realsense),
+    #     parameters=[{
+    #         'input_topic': '/camera/color/image_raw',
+    #         'output_topic': '/image_raw'
+    #     }]
+    # )
     
     return LaunchDescription([
         # 声明参数
@@ -140,10 +138,22 @@ def generate_launch_description():
         use_plate_detection_arg,
         use_drone_control_arg,
         
+        # ROS-Gazebo 桥接节点
+        ExecuteProcess(
+            cmd=['ros2', 'run', 'ros_gz_bridge', 'parameter_bridge', '/camera@sensor_msgs/msg/Image@gz.msgs.Image'],
+            name='image_bridge_process',
+            output='screen',
+        ),
+        ExecuteProcess(
+            cmd=['ros2', 'run', 'ros_gz_bridge', 'parameter_bridge', '/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo'],
+            name='camera_info_bridge_process',
+            output='screen',
+        ),
+        
         # 启动节点
-        drone_control_node,
-        plate_detection_node,
-        usb_cam_node,
+        drone_control_node
+        # plate_detection_node,
+        # usb_cam_node,
         # realsense_node,  # 已注释，需要时取消注释
         # image_remap_node,  # 已注释，需要时取消注释
     ]) 

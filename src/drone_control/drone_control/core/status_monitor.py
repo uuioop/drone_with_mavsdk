@@ -8,6 +8,7 @@ import math
 import asyncio
 from std_msgs.msg import String
 from drone_control.utils import calculate_distance
+from mavsdk.telemetry import LandedState,PositionVelocityNed
 
 class DroneStatusMonitor:
     """无人机状态监控类"""
@@ -27,38 +28,27 @@ class DroneStatusMonitor:
         
     async def start_monitoring(self):
         """开始监控无人机状态"""
-        self.logger.info("开始并行监控无人机状态...")
-        await asyncio.gather(
-            self._main_monitoring_loop(),
-            self._mission_progress_loop()
-        )
-
-    async def _main_monitoring_loop(self):
-        """主监控循环，高频更新"""
+        self.logger.info("开始监控无人机状态...")
+        
         while True:
             if self.drone_state.connected:
-                try:
-                    await self._monitor_flight_mode()
-                    await self._monitor_position()
-                    await self._monitor_velocity()
+                try:                  
+                    # 执行监控任务（分别处理异常）
+                    # await self._monitor_health()
+                    task=[
+                        self._monitor_flight_mode(),
+                        self._monitor_position(),
+                        self._monitor_attitude(),
+                        self._monitor_velocity(),
+                        self._monitor_home_position(),
+                        self.observer_is_landed()
+                    ]
+                    await asyncio.gather(*task,return_exceptions=True)
+                    # await self._monitor_mission_progress(self.drone_state.current_position, self.drone_state.target_position)                    
                 except Exception as e:
-                    self.logger.error(f"主状态监控异常: {e}")
-            else:
-                self.logger.debug("等待连接...", throttle_duration_sec=1)
+                    self.logger.error(f"状态监控异常: {e}")
+            
             await asyncio.sleep(0.1)
-
-    async def _mission_progress_loop(self):
-        """任务进度监控循环，低频更新"""
-        while True:
-            if self.drone_state.connected:
-                try:
-                    if self.drone_state.navigating:
-                        await self._monitor_mission_progress(
-                            self.drone_state.current_position, self.drone_state.target_position
-                        )
-                except Exception as e:
-                    self.logger.error(f"任务进度监控异常: {e}")
-            await asyncio.sleep(1.0)
     
     async def _check_connection(self):
         """检查无人机连接状态"""
@@ -103,17 +93,17 @@ class DroneStatusMonitor:
             
     async def _check_preflight(self):
         if not self.drone_state.connected:
-            self.logger.error("[任务模式] 未连接无人机")
+            self.logger.error("未连接无人机")
             return False
         async for health in self.drone.telemetry.health():
             if not health.is_armable:
-                self.logger.error("[任务模式] 系统不可解锁")
+                self.logger.error("系统不可解锁")
                 return False
             if not health.is_global_position_ok:
-                self.logger.error("[任务模式] GPS未锁定")
+                self.logger.error("GPS未锁定")
                 return False
             if not health.is_home_position_ok:
-                self.logger.error("[任务模式] 家位置未锁定")
+                self.logger.error("家位置未锁定")
                 return False
             return True
 
@@ -145,7 +135,14 @@ class DroneStatusMonitor:
     #             break
     #     except Exception as e:
     #         self.logger.warn(f"健康状态监控异常: {e}")
-    
+    async def _monitor_home_position(self):
+        """监控家位置"""
+        try:
+            async for home in self.drone.telemetry.home():
+                self.logger.info(f"家位置: {home}")
+                break
+        except Exception as e:
+            self.logger.warn(f"家位置监控异常: {e}")
     async def _monitor_flight_mode(self):
         """监控飞行模式"""
         try:
@@ -161,34 +158,63 @@ class DroneStatusMonitor:
     async def _monitor_position(self):
         """监控GPS位置"""
         try:
+            # 监控全局位置
             async for position in self.drone.telemetry.position():
                 if position != self.drone_state.current_position:
                     self.drone_state.update_position(position)
-                
                 # 发布实时位置信息
                 await self._publish_position_info(position)
                 break
+                
+            # 监控NED位置
+            async for pv_ned in self.drone.telemetry.position_velocity_ned():
+                # 更新NED位置
+                if pv_ned.position != self.drone_state.current_position_ned:
+                    self.drone_state.current_position_ned=pv_ned.position
+                self.logger.info(f"NED位置: {pv_ned.position}")
+                break
+                
         except Exception as e:
             self.logger.warn(f"位置监控异常: {e}")
     
     async def _monitor_velocity(self):
-        """监控速度"""
+        """监控NED速度"""
         try:
-            async for velocity in self.drone.telemetry.velocity_ned():
-                self.drone_state.update_velocity(velocity)
+            async for pv_ned in self.drone.telemetry.position_velocity_ned():
+                if pv_ned.velocity != self.drone_state.current_velocity_ned:
+                    self.drone_state.current_velocity_ned=pv_ned.velocity
                 break
         except Exception as e:
             self.logger.warn(f"速度监控异常: {e}")
 
     async def _monitor_attitude(self):
-        """监控姿态"""
+        """监控四元数姿态"""
         try:
-            async for attitude in self.drone.telemetry.attitude_euler():
-                self.drone_state.update_attitude(attitude)
+            async for attitude_quaternion in self.drone.telemetry.attitude_quaternion():
+                self.drone_state.attitude_quaternion=attitude_quaternion
                 break
         except Exception as e:
             self.logger.warn(f"姿态监控异常: {e}")
     
+    async def observer_is_landed(self):
+        """ 
+        监控无人机是否着陆
+        
+        Args:
+            drone: 无人机对象
+            logger: 日志记录器
+        """ 
+        async for landed_state in self.drone.telemetry.landed_state():
+            if landed_state == LandedState.ON_GROUND:
+                self.drone_state.landed = True
+            elif landed_state in [LandedState.IN_AIR, LandedState.TAKING_OFF, LandedState.LANDING]:
+                self.drone_state.landed = False
+            # For UNKNOWN state, we could either do nothing or explicitly set to a default.
+            # Setting to False is a safe default.
+            elif landed_state == LandedState.UNKNOWN:
+                self.drone_state.landed = False
+            break
+
     async def _publish_position_info(self, position):
         """发布无人机位置信息"""
         if self.position_publisher:
@@ -200,5 +226,3 @@ class DroneStatusMonitor:
                 
             except Exception as e:
                 self.logger.error(f"发布位置信息失败: {e}")
-
-

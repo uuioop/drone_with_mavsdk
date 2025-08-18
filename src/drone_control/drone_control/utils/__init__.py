@@ -5,6 +5,7 @@
 
 from .utils import calculate_distance, enu_to_ned, ned_to_enu, calculate_gps_offset, calculate_heading_from_points, normalize_angle
 from .utils import calculate_ned_from_origin, observe_is_in_air
+from .enum_control import ControlMode
 __all__ = [
     'calculate_distance',
     'enu_to_ned', 
@@ -14,4 +15,5 @@ __all__ = [
     'normalize_angle',
     'calculate_ned_from_origin',
     'observe_is_in_air',
-] 
+    'ControlMode'
+]   
