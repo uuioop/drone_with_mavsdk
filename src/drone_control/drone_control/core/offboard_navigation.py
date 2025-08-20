@@ -5,11 +5,9 @@
 
 import asyncio
 from mavsdk import action
-from mavsdk.offboard import OffboardError, PositionNedYaw, VelocityBodyYawspeed, VelocityNedYaw
+from mavsdk.offboard import OffboardError, PositionNedYaw, VelocityBodyYawspeed, VelocityNedYaw,PositionGlobalYaw
 from drone_control.utils.utils import observe_is_in_air
-from drone_control.core.precision_land import PrecisionLand, PrecisionLandState
-
-
+import numpy as np
 class OffboardNavigationController:
     """板外模式导航控制类 - 只使用板外模式进行导航"""
 
@@ -18,14 +16,21 @@ class OffboardNavigationController:
         self.logger = logger
         self.drone_state = drone_state
         self.license_plate_result = license_plate_result
-
+        self.target_pos=np.array([0, 0, 0],dtype=float)
+        self.current_ned=None
+        self.current_global=None
+        self.yaw_deg=None
         # 固定速度参数
         self.fixed_velocity = 1.0  # 固定飞行速度 (m/s)
         self.velocity_yaw_rate = 0.5  # 偏航角速度 (rad/s)
 
 
-    async def navigate_to_position(self,target_north=None,target_east=None,target_down=None):
+    async def navigate_to_position(self):
         """板外模式导航到目标位置 - 使用位置控制"""
+        self.target_pos=self.drone_state.target_position 
+        self.current_ned=self.drone_state.current_position_ned
+        self.current_global=self.drone_state.current_position
+        self.yaw_deg=self.drone_state.attitude_euler.yaw_deg
         try:
             # 解锁无人机
             await self.drone.action.arm()
@@ -35,17 +40,16 @@ class OffboardNavigationController:
             await self.start_offboard_mode()
 
             # 分阶段导航
-            if target_north is None or target_east is None or target_down is None:
-                target_north, target_east, target_down = (
-                    self.drone_state.calculate_target_ned_from_origin()
-                )
             self.logger.info(
-                f"target_north: {target_north}, target_east: {target_east}, target_down: {target_down}"
+                f"{self}"
             )
 
-            await self.fly_to_target_altitude(target_down)
-            await self.fly_to_target_position(target_north, target_east,target_down)
-
+            await self.fly_to_target_altitude()
+            # await self.fly_to_target_position()
+            await self.stop_offboard_mode()
+            await self.drone.action.land()
+            
+            await observe_is_in_air(self.drone, self.logger)
             # 观察四周环境
             # await self.observe_environment()
             # await self.stop_offboard_mode()
@@ -65,7 +69,7 @@ class OffboardNavigationController:
         """启动板外模式"""
         try:
             await self.drone.offboard.set_position_ned(
-                PositionNedYaw(0.0, 0.0, 0.0, 0.0)
+                PositionNedYaw(0.0, 0.0, 0.0, self.yaw_deg)
             )
             await self.drone.offboard.start()
             self.logger.info("[板外导航] 板外模式已启动")
@@ -88,19 +92,19 @@ class OffboardNavigationController:
 
         self.logger.info("[板外导航] 观察四周环境完成")
 
-    async def fly_to_target_altitude(self, target_down):
+    async def fly_to_target_altitude(self):
         """飞到目标高度 - 使用位置控制"""
-        self.logger.info(f"[板外导航] 阶段1：飞到目标高度 {target_down:.2f}m")
-        
-        # 获取当前水平位置
-        current_north, current_east, _ = (
-            self.drone_state.calculate_ned_from_origin()
-        )
+        self.logger.info(f"[板外导航] 阶段1：飞到目标高度 {self.target_pos[2]:.2f}m")
 
         # 使用位置控制飞到目标高度
-        await self.drone.offboard.set_position_ned(
-            PositionNedYaw(current_north, current_east, target_down, 0.0)
-        )
+        if self.drone_state.navigation_mode=='RELATIVE':
+            await self.drone.offboard.set_position_ned(
+                PositionNedYaw(self.current_ned.north_m, self.current_ned.east_m, self.target_pos[2], self.yaw_deg)
+            )
+        else:
+            await self.drone.offboard.set_position_global(
+                PositionGlobalYaw(self.current_global.latitude_deg, self.current_global.longitude_deg, self.target_pos[2], self.yaw_deg)
+            )
         # 等待到达目标高度
         # while True:
         #     altitude_diff = target_down - self.get_current_down()
@@ -108,20 +112,25 @@ class OffboardNavigationController:
         #         break
         #     await asyncio.sleep(0.1)  # 每0.5秒检查一次
         await asyncio.sleep(7)
-        self.logger.info(f"[板外导航] 已到达目标高度 {target_down:.2f}m")
+        self.logger.info(f"[板外导航] 已到达目标高度 {self.target_pos[2]:.2f}m")
 
                
-    async def fly_to_target_position(self, target_north, target_east,target_down):
+    async def fly_to_target_position(self):
         """飞到目标水平位置"""
         self.logger.info(
-            f"[板外导航] 阶段2：飞到目标水平位置 北={target_north:.2f}m, 东={target_east:.2f}m"
+            f"[板外导航] 阶段2：飞到目标水平位置 北={self.target_pos[0]:.2f}m, 东={self.target_pos[1]:.2f}m"
         )
 
         # 使用位置控制飞到目标位置
     
-        await self.drone.offboard.set_position_ned(
-            PositionNedYaw(target_north, target_east, target_down, 0.0)
-        )
+        if self.drone_state.navigation_mode=='RELATIVE':
+            await self.drone.offboard.set_position_ned(
+                PositionNedYaw(self.target_pos[0], self.target_pos[1], self.target_pos[2], self.yaw_deg)
+            )
+        else:
+            await self.drone.offboard.set_position_global(
+                PositionGlobalYaw(self.target_pos[0], self.target_pos[1], self.target_pos[2], self.yaw_deg)
+            )
         
         # 等待到达目标位置
         # while True:
@@ -139,12 +148,8 @@ class OffboardNavigationController:
         #         break
         #     await asyncio.sleep(0.5)  # 每0.5秒检查一次
         await asyncio.sleep(2)
-        self.logger.info(f"[板外导航] 已到达目标位置 北={target_north:.2f}m, 东={target_east:.2f}m")
+        self.logger.info(f"[板外导航] 已到达目标位置 北={self.target_pos[0]:.2f}m, 东={self.target_pos[1]:.2f}m")
 
-    def get_current_down(self):
-        """获取当前下向位置"""
-        _, _, down = self.drone_state.calculate_ned_from_origin()
-        return down
 
     async def stop_offboard_mode(self):
         """停止板外模式"""

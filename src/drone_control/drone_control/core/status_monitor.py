@@ -40,7 +40,6 @@ class DroneStatusMonitor:
                         self._monitor_position(),
                         self._monitor_attitude(),
                         self._monitor_velocity(),
-                        self._monitor_home_position(),
                         self.observer_is_landed()
                     ]
                     await asyncio.gather(*task,return_exceptions=True)
@@ -135,10 +134,11 @@ class DroneStatusMonitor:
     #             break
     #     except Exception as e:
     #         self.logger.warn(f"健康状态监控异常: {e}")
-    async def _monitor_home_position(self):
-        """监控家位置"""
+    async def _get_home_position(self):
+        """获取家位置"""
         try:
             async for home in self.drone.telemetry.home():
+                self.drone_state.update_home_position(home)
                 self.logger.info(f"家位置: {home}")
                 break
         except Exception as e:
@@ -191,7 +191,12 @@ class DroneStatusMonitor:
         """监控四元数姿态"""
         try:
             async for attitude_quaternion in self.drone.telemetry.attitude_quaternion():
-                self.drone_state.attitude_quaternion=attitude_quaternion
+                if attitude_quaternion != self.drone_state.attitude_quaternion:
+                    self.drone_state.attitude_quaternion=attitude_quaternion
+                break
+            async for attitude_euler in self.drone.telemetry.attitude_euler():
+                if attitude_euler != self.drone_state.attitude_euler:
+                    self.drone_state.attitude_euler=attitude_euler
                 break
         except Exception as e:
             self.logger.warn(f"姿态监控异常: {e}")

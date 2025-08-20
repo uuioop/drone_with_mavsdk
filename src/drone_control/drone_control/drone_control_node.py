@@ -21,7 +21,7 @@ from drone_control.srv import Nav, Pos
 # 导入核心模块
 from drone_control.core import DroneState, LicensePlateProcessor, DroneStatusMonitor,  PrecisionLand
 from drone_control.core.offboard_navigation import OffboardNavigationController
-from drone_control.utils.utils import calculate_relative_position_target, validate_gps_coordinates
+from drone_control.utils.utils import validate_gps_coordinates
 
 
 
@@ -76,10 +76,10 @@ class DroneControlNode(Node):
 
     def _setup_services(self):
         """初始化ROS服务"""
-        self.relative_navigation_srv = self.create_service(
-            Pos, 'drone/relative_navigation', self._sync_relative_navigation_callback)
-        self.absolute_navigation_srv = self.create_service(
-            Nav, 'drone/absolute_navigation', self._sync_absolute_navigation_callback)
+        self.navigation_srv = self.create_service(
+            Pos, 'drone/navigation', self._sync_navigation_callback)
+        # self.absolute_navigation_srv = self.create_service(
+        #     Nav, 'drone/absolute_navigation', self._sync_absolute_navigation_callback)
 
     def _setup_subscriptions(self):
         """设置订阅和发布"""
@@ -137,33 +137,14 @@ class DroneControlNode(Node):
         await self.drone.connect(system_address=self.system_address)
         # await self.drone.connect()
         # 获取初始位置
-        await self._get_home_position()
+        await self.status_monitor._get_home_position()
         async for state in self.drone.core.connection_state():
             if state.is_connected:
                 self.get_logger().info("成功连接到无人机!")
                 self.drone_state.update_connection(True)
                 break
 
-    async def _get_home_position(self):
-        """获取起始位置 - 增强错误处理"""
-        try:
-            # 等待telemetry初始化
-            await asyncio.sleep(1)
-            
-            async for position in self.drone.telemetry.position():
-                self.drone_state.update_home_position(position)
-                self.get_logger().info(f"起始位置: 纬度={position.latitude_deg:.6f}, 经度={position.longitude_deg:.6f}, 高度={position.absolute_altitude_m:.2f}m")
-                break
-        except Exception as e:
-            self.get_logger().error(f"获取起始位置失败: {e}")
-            # 设置默认起始位置
-            self.drone_state.update_home_position(type('Position', (), {
-                'latitude_deg': 0.0,
-                'longitude_deg': 0.0,
-                'absolute_altitude_m': 0.0
-            })())
-
-    async def _relative_navigation_callback(self, request):
+    async def _navigation_callback(self, request):
         """处理相对位置导航请求 - 使用NED坐标系"""
         response = Pos.Response()
 
@@ -187,144 +168,49 @@ class DroneControlNode(Node):
                 self.get_logger().error("当前位置为空，请检查GPS连接")
                 return response
             # 从Pos.srv消息中获取NED相对偏移
-            relative_n = request.north  # 北向偏移（米）
-            relative_e = request.east  # 东向偏移（米）
-            relative_d = request.down  # 下向偏移（米）           
-            self.get_logger().info(f"[相对导航] NED相对偏移: 北={relative_n:.2f}m, 东={relative_e:.2f}m, 下={relative_d:.2f}m")
-            
-            # 使用工具函数计算目标位置
-            target_lat, target_lon, target_alt = calculate_relative_position_target(
-                current_position.latitude_deg,
-                current_position.longitude_deg,
-                current_position.absolute_altitude_m,
-                relative_n, relative_e, relative_d
-            )
-            
-            # 验证计算后的坐标
-            if not validate_gps_coordinates(target_lat, target_lon, target_alt):
-                response.success = False
-                response.message = "计算后的坐标参数无效"
-                return response
+            self.drone_state.update_target_position(request.x,request.y,request.z)           
+            self.drone_state.navigation_mode = "RELATIVE" if request.is_ned else "ABSOLUTE"
 
-            self.drone_state.target_position = type('Position', (), {
-                'latitude_deg': target_lat,
-                'longitude_deg': target_lon,
-                'absolute_altitude_m': target_alt
-            })()
+            self.get_logger().info(f"[导航] 模式: {self.drone_state.navigation_mode}")
 
             # 使用板外导航控制器进行相对位置导航
             self.offboard_active = True
-            await self.offboard_navigation_controller.navigate_to_position(target_north=relative_n,target_east=relative_e,target_down=relative_d)
-            self.offboard_active = False
-            self.precision_land_controller.start_precision_land()
-            response.success = True
-            response.message = f"相对导航完成: NED偏移({relative_n:.2f}, {relative_e:.2f}, {relative_d:.2f})"
-            self.get_logger().info(response.message)
-            
-        except Exception as e:
-            response.success = False
-            response.message = f"相对导航错误: {str(e)}"
-            self.get_logger().error(response.message)
-        return response
-
-    async def _absolute_navigation_callback(self, request):
-        """处理绝对位置导航请求 - 使用板外模式"""
-        response = Nav.Response()
-
-        if self.offboard_active:
-            response.success = False
-            response.message = "已有板外导航任务在执行中。"
-            return response
-        """处理绝对位置导航请求 - 使用板外模式"""
-        response = Nav.Response()
-        
-        # 检查解锁状态
-        if not await self.status_monitor._check_preflight():
-            response.success = False
-            response.message = "无人机起飞状态不满足"
-            return response
-
-        try:
-            # 从Nav.srv消息中获取坐标
-            lat = request.latitude_deg
-            lon = request.longitude_deg
-            alt = request.absolute_altitude_m
-            
-            # 验证坐标参数
-            if not validate_gps_coordinates(lat, lon, alt):
-                response.success = False
-                response.message = "计算后的坐标参数无效"
-                return response
-            
-            self.drone_state.target_position = type('Position', (), {
-                'latitude_deg': lat,
-                'longitude_deg': lon,
-                'absolute_altitude_m': alt
-            })()
-
-            self.get_logger().info(f"[绝对导航] 开始绝对位置导航到: 纬度={lat:.6f}, 经度={lon:.6f}, 高度={alt:.2f}m")
-            
-            self.offboard_active = True
-            # 使用板外导航控制器
             await self.offboard_navigation_controller.navigate_to_position()
+            # self.precision_land_controller.start_precision_land()
             self.offboard_active = False
             response.success = True
-            response.message = f"绝对位置导航完成: 纬度={lat:.6f}, 经度={lon:.6f}, 高度={alt:.2f}m"
+            response.message = f"导航完成"
             self.get_logger().info(response.message)
             
         except Exception as e:
             response.success = False
-            response.message = f"绝对位置导航错误: {str(e)}"
+            response.message = f"导航错误: {str(e)}"
             self.get_logger().error(response.message)
         return response
-
 
     # ========= 同步桥接方法 =========
 
-    def _sync_relative_navigation_callback(self, request, response):
-        """相对位置导航的同步回调函数"""
+    def _sync_navigation_callback(self, request, response):
+        """导航的同步回调函数"""
         try:
             future = asyncio.run_coroutine_threadsafe(
-                self._relative_navigation_callback(request), self.loop)
+                self._navigation_callback(request), self.loop)
             result = future.result(timeout=60)  # 相对导航需要更长时间
             
-
             # 确保响应对象被正确设置
             if result is not None:
                 response.success = result.success
                 response.message = result.message
             else:
                 response.success = False
-                response.message = "相对导航回调返回空结果"
+                response.message = "导航回调返回空结果"
             if response.success:
                 pass
             return response
         except Exception as e:
             response.success = False
-            response.message = f"相对导航超时: {str(e)}，应急降落"        
+            response.message = f"导航超时: {str(e)}，应急降落"        
            
-            asyncio.run_coroutine_threadsafe(self.drone.action.land(), self.loop)
-            return response
-
-    def _sync_absolute_navigation_callback(self, request, response):
-        try:
-            future = asyncio.run_coroutine_threadsafe(
-                self._absolute_navigation_callback(request), self.loop)
-            result = future.result(timeout=60)  # 绝对位置导航需要更长时间
-            
-            # 确保响应对象被正确设置
-            if result is not None:
-                response.success = result.success
-                response.message = result.message
-            else:
-                response.success = False
-                response.message = "绝对位置导航回调返回空结果"
-            
-            return response
-        except Exception as e:
-            response.success = False
-            response.message = f"绝对位置导航超时: {str(e)}，应急降落"
-            
             asyncio.run_coroutine_threadsafe(self.drone.action.land(), self.loop)
             return response
 

@@ -4,6 +4,7 @@
 """
 
 from drone_control.utils.utils import calculate_ned_from_origin
+import numpy as np
 
 class DroneState:
     """无人机状态管理类"""
@@ -13,8 +14,8 @@ class DroneState:
         self._search_start = False
         self.current_flight_mode = "UNKNOWN"
         self.current_position = None
-        self.target_position = None
-
+        self.target_position = np.array([0, 0, 0],dtype=float)
+        self.navigation_mode = "UNKNOWN"
         self.home_position = None
         # NED坐标系下的当前位置
         self.current_position_ned = None
@@ -22,7 +23,9 @@ class DroneState:
         self.current_velocity_ned = None
 
         # 四元数姿态
-        self._attitude_quaternion = None
+        self.attitude_quaternion = None
+        # 欧拉角姿态
+        self.attitude_euler = None
     
     def update_connection(self,connected):
         if not self.connected == connected:
@@ -46,13 +49,6 @@ class DroneState:
         if not self._search_start == is_search_started:
             self._search_start = is_search_started
 
-    @property
-    def attitude(self):
-        return self._attitude_quaternion
-    
-    @attitude.setter
-    def attitude(self,attitude_quaternion):
-        self._attitude_quaternion=attitude_quaternion
 
     def update_flight_mode(self, mode: str):
         """更新飞行模式"""
@@ -62,9 +58,9 @@ class DroneState:
         """更新当前位置"""
         self.current_position = position
         
-    def update_target_position(self, position):
+    def update_target_position(self, x,y,z):
         """更新目标位置"""
-        self.target_position = position
+        self.target_position = np.array([x,y,z], dtype=float)
 
     def update_home_position(self, position):
         """更新起始位置"""
@@ -83,23 +79,23 @@ class DroneState:
             'has_home': self.home_position is not None
         } 
     
-    def calculate_ned_from_origin(self) -> tuple:
-        """计算当前位置相对于起始位置的NED坐标"""
+    # def calculate_ned_from_origin(self) -> tuple:
+    #     """计算当前位置相对于起始位置的NED坐标"""
 
-        # 计算当前位置相对于起始位置的NED坐标
-        current_lat, current_lon, current_alt = self.current_position.latitude_deg, self.current_position.longitude_deg, self.current_position.absolute_altitude_m
-        home_lat, home_lon, home_alt = self.home_position.latitude_deg, self.home_position.longitude_deg, self.home_position.absolute_altitude_m
+    #     # 计算当前位置相对于起始位置的NED坐标
+    #     current_lat, current_lon, current_alt = self.current_position.latitude_deg, self.current_position.longitude_deg, self.current_position.absolute_altitude_m
+    #     home_lat, home_lon, home_alt = self.home_position.latitude_deg, self.home_position.longitude_deg, self.home_position.absolute_altitude_m
 
-        # 计算当前位置相对于起始位置的NED坐标
-        return calculate_ned_from_origin(home_lat, home_lon, home_alt, current_lat, current_lon, current_alt)
+    #     # 计算当前位置相对于起始位置的NED坐标
+    #     return calculate_ned_from_origin(home_lat, home_lon, home_alt, current_lat, current_lon, current_alt)
 
-    def calculate_target_ned_from_origin(self) -> tuple:
-        """计算目标位置相对于起始位置的NED坐标"""
-        target_lat, target_lon, target_alt = self.target_position.latitude_deg, self.target_position.longitude_deg, self.target_position.absolute_altitude_m
-        home_lat, home_lon, home_alt = self.home_position.latitude_deg, self.home_position.longitude_deg, self.home_position.absolute_altitude_m
+    # def calculate_target_ned_from_origin(self) -> tuple:
+    #     """计算目标位置相对于起始位置的NED坐标"""
+    #     target_lat, target_lon, target_alt = self.target_position[0], self.target_position[1], self.target_position[2]
+    #     home_lat, home_lon, home_alt = self.home_position.latitude_deg, self.home_position.longitude_deg, self.home_position.absolute_altitude_m
 
-        # 计算目标位置相对于起始位置的NED坐标
-        return calculate_ned_from_origin(home_lat, home_lon, home_alt, target_lat, target_lon, target_alt)
+    #     # 计算目标位置相对于起始位置的NED坐标
+    #     return calculate_ned_from_origin(home_lat, home_lon, home_alt, target_lat, target_lon, target_alt)
 
     def get_current_time(self) -> float:
         """获取当前时间戳（秒）"""

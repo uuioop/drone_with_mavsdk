@@ -58,42 +58,10 @@ ros2 run drone_control drone_control_node
 
 ### 2. 服务接口
 
-#### 绝对位置导航服务 (`/drone/hybrid_navigation`)
+#### 两种位置导航服务 (`/drone/navigation`)
 ```bash
-# 导航到指定GPS坐标
-ros2 service call /drone/hybrid_navigation drone_control/srv/Nav "{latitude_deg: 30.123456, longitude_deg: 120.123456, absolute_altitude_m: 100.0}"
-```
+ros2 service call /drone/navigation drone_control/srv/Pos "{x: 2.0, y: 2.0, z: -2.0, is_ned: True}"
 
-#### 相对位置导航服务 (`/drone/relative_navigation`)
-```bash
-# 向北飞行10米，向东飞行5米，上升9米
-ros2 service call /drone/relative_navigation drone_control/srv/Pos "{north: 10.0, east: 5.0, down: -9.0}"
-```
-
-### 3. 常用导航命令
-
-#### 基础相对导航
-```bash
-# 向北飞行10米
-ros2 service call /drone/relative_navigation drone_control/srv/Pos "{north: 10.0, east: 0.0, down: 0.0}"
-
-# 向东飞行5米
-ros2 service call /drone/relative_navigation drone_control/srv/Pos "{north: 0.0, east: 5.0, down: 0.0}"
-
-# 上升5米
-ros2 service call /drone/relative_navigation drone_control/srv/Pos "{north: 0.0, east: 0.0, down: -5.0}"
-
-# 下降3米
-ros2 service call /drone/relative_navigation drone_control/srv/Pos "{north: 0.0, east: 0.0, down: 3.0}"
-```
-
-#### 复合导航
-```bash
-# 对角线飞行：向北5米，向东5米，上升2米
-ros2 service call /drone/relative_navigation drone_control/srv/Pos "{north: 5.0, east: 5.0, down: -2.0}"
-
-# 复杂路径：向北15米，向西10米，上升3米
-ros2 service call /drone/relative_navigation drone_control/srv/Pos "{north: 15.0, east: -10.0, down: -3.0}"
 ```
 
 ## 坐标系统
@@ -114,10 +82,9 @@ ros2 service call /drone/relative_navigation drone_control/srv/Pos "{north: 15.0
 
 ### 相对位置导航流程
 1. **位置获取**: 获取无人机当前位置
-2. **坐标转换**: 将NED相对偏移转换为经纬度绝对坐标
-3. **任务模式**: 使用任务模式导航到目标位置
-4. **板外模式**: 切换到板外模式进行精确位置控制
-5. **完成确认**: 确认到达目标位置
+2. **任务模式**: 使用任务模式导航到目标位置
+3. **板外模式**: 切换到板外模式进行精确位置控制
+4. **完成确认**: 确认到达目标位置
 
 ### 混合导航流程
 1. **系统检查**: 验证连接状态和起飞条件

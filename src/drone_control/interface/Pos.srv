@@ -1,6 +1,7 @@
-float64 north  # ned坐标系
-float64 east
-float64 down
+float64 x  # ned坐标系
+float64 y
+float64 z
+bool is_ned
 ---
 bool success
 string message
