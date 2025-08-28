@@ -8,12 +8,12 @@ def generate_launch_description():
     return LaunchDescription([
         # Run bridge nodes directly without screen
         ExecuteProcess(
-            cmd=['ros2', 'run', 'ros_gz_bridge', 'parameter_bridge', '/world/aruco/model/x500_mono_cam_down_0/link/camera_link/sensor/imager/image@sensor_msgs/msg/Image@gz.msgs.Image', '--ros-args', '-r', '/world/aruco/model/x500_mono_cam_down_0/link/camera_link/sensor/imager/image:=/camera/image'],
+            cmd=['ros2', 'run', 'ros_gz_bridge', 'parameter_bridge', '/world/aruco/model/x500_mono_cam_down_0/link/camera_link/sensor/imager/image@sensor_msgs/msg/Image@gz.msgs.Image', '--ros-args', '-r', '/world/aruco/model/x500_mono_cam_down_0/link/camera_link/sensor/imager/image:=/image_raw'],
             name='image_bridge_process',
             output='screen',
         ),
         ExecuteProcess(
-            cmd=['ros2', 'run', 'ros_gz_bridge', 'parameter_bridge', '/world/aruco/model/x500_mono_cam_down_0/link/camera_link/sensor/imager/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo', '--ros-args', '-r', '/world/aruco/model/x500_mono_cam_down_0/link/camera_link/sensor/imager/camera_info:=/camera/camera_info'],
+            cmd=['ros2', 'run', 'ros_gz_bridge', 'parameter_bridge', '/world/aruco/model/x500_mono_cam_down_0/link/camera_link/sensor/imager/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo', '--ros-args', '-r', '/world/aruco/model/x500_mono_cam_down_0/link/camera_link/sensor/imager/camera_info:=/camera_info'],
             name='camera_info_bridge_process',
             output='screen',
         ),

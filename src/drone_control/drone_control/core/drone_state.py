@@ -14,7 +14,7 @@ class DroneState:
         self._search_start = False
         self.current_flight_mode = "UNKNOWN"
         self.current_position = None
-        self.target_position = np.array([0, 0, 0],dtype=float)
+        self.target_position = np.array([0, 0, 0, 0],dtype=float)
         self.navigation_mode = "UNKNOWN"
         self.home_position = None
         # NED坐标系下的当前位置
@@ -58,10 +58,13 @@ class DroneState:
         """更新当前位置"""
         self.current_position = position
         
-    def update_target_position(self, x,y,z):
+    def update_target_position(self, x,y,z,w):
         """更新目标位置"""
-        self.target_position = np.array([x,y,z], dtype=float)
+        self.target_position = np.array([x,y,z,w], dtype=float)
 
+    def reset_target_position(self):
+        """重置目标位置"""
+        self.target_position = np.array([0,0,0,0], dtype=float)
     def update_home_position(self, position):
         """更新起始位置"""
         self.home_position = position

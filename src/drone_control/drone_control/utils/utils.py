@@ -228,7 +228,7 @@ async def observe_is_in_air(drone, logger):
         logger: 日志记录器
     """
     was_in_air = False
-
+    await drone.action.land()
     async for is_in_air in drone.telemetry.in_air():
         if is_in_air:
             was_in_air = is_in_air

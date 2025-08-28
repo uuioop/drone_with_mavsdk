@@ -15,13 +15,17 @@ ArucoTrackerNode::ArucoTrackerNode()
 
 	_detector = std::make_unique<cv::aruco::ArucoDetector>(dictionary, detectorParams);
 
+	_camera_matrix = (cv::Mat_<double>(3, 3) <<
+    1630,    0,   960,
+       0, 1570,   540,
+       0,    0,     1);
 	auto qos = rclcpp::QoS(1).best_effort();
 
 	_image_sub = create_subscription<sensor_msgs::msg::Image>(
-			     "/camera/image", qos, std::bind(&ArucoTrackerNode::image_callback, this, std::placeholders::_1));
+			     "/image_raw", qos, std::bind(&ArucoTrackerNode::image_callback, this, std::placeholders::_1));
 
-	_camera_info_sub = create_subscription<sensor_msgs::msg::CameraInfo>(
-				   "/camera/camera_info", qos, std::bind(&ArucoTrackerNode::camera_info_callback, this, std::placeholders::_1));
+	// _camera_info_sub = create_subscription<sensor_msgs::msg::CameraInfo>(
+	// 			   "/camera_info", qos, std::bind(&ArucoTrackerNode::camera_info_callback, this, std::placeholders::_1));
 
 	// Publishers
 	_image_pub = create_publisher<sensor_msgs::msg::Image>("/image_proc", qos);
@@ -32,7 +36,7 @@ void ArucoTrackerNode::loadParameters()
 {
 	declare_parameter<int>("aruco_id", 0);
 	declare_parameter<int>("dictionary", 2); // DICT_4X4_250
-	declare_parameter<double>("marker_size", 0.5);
+	declare_parameter<double>("marker_size", 0.196); // 0.5 m
 
 	get_parameter("aruco_id", _param_aruco_id);
 	get_parameter("dictionary", _param_dictionary);
@@ -51,7 +55,8 @@ void ArucoTrackerNode::image_callback(const sensor_msgs::msg::Image::SharedPtr m
 		_detector->detectMarkers(cv_ptr->image, corners, ids);
 		cv::aruco::drawDetectedMarkers(cv_ptr->image, corners, ids);
 
-		if (!_camera_matrix.empty() && !_dist_coeffs.empty()) {
+		// if (!_camera_matrix.empty() && !_dist_coeffs.empty()) {
+		if (!_camera_matrix.empty()){
 
 			std::vector<std::vector<cv::Point2f>> undistortedCorners;
 

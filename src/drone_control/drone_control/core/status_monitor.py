@@ -13,18 +13,18 @@ from mavsdk.telemetry import LandedState,PositionVelocityNed
 class DroneStatusMonitor:
     """无人机状态监控类"""
     
-    def __init__(self, drone, drone_state, logger, position_publisher=None):
+    def __init__(self, drone, drone_state, logger):
         self.drone = drone
         self.drone_state = drone_state
         self.logger = logger
         self.position_tolerance = 5.0
         self.altitude_tolerance = 2.0
         self.yaw_tolerance = 10.0
-        self.position_publisher = position_publisher
+        self.publisher = None
 
-    def set_position_publisher(self, publisher):
-        """设置位置发布者"""
-        self.position_publisher = publisher
+    def set_info_publisher(self, publisher):
+        """设置发布者"""
+        self.publisher = publisher
         
     async def start_monitoring(self):
         """开始监控无人机状态"""
@@ -162,8 +162,7 @@ class DroneStatusMonitor:
             async for position in self.drone.telemetry.position():
                 if position != self.drone_state.current_position:
                     self.drone_state.update_position(position)
-                # 发布实时位置信息
-                await self._publish_position_info(position)
+                    await self._publish_position_info(self.drone_state.current_position)
                 break
                 
             # 监控NED位置
@@ -171,7 +170,7 @@ class DroneStatusMonitor:
                 # 更新NED位置
                 if pv_ned.position != self.drone_state.current_position_ned:
                     self.drone_state.current_position_ned=pv_ned.position
-                self.logger.info(f"NED位置: {pv_ned.position}")
+                    await self._publish_position_ned_info(self.drone_state.current_position_ned)
                 break
                 
         except Exception as e:
@@ -196,7 +195,8 @@ class DroneStatusMonitor:
                 break
             async for attitude_euler in self.drone.telemetry.attitude_euler():
                 if attitude_euler != self.drone_state.attitude_euler:
-                    self.drone_state.attitude_euler=attitude_euler
+                    self.drone_state.attitude_euler=attitude_euler                    
+                    await self._publish_yaw_info(self.drone_state.attitude_euler.yaw_deg)
                 break
         except Exception as e:
             self.logger.warn(f"姿态监控异常: {e}")
@@ -221,13 +221,36 @@ class DroneStatusMonitor:
             break
 
     async def _publish_position_info(self, position):
-        """发布无人机位置信息"""
-        if self.position_publisher:
+        """发布无人机信息"""
+        if self.publisher:
             try:
                 # 发布详细位置信息
                 position_msg = String()
                 position_msg.data = f"纬度: {position.latitude_deg:.6f}, 经度: {position.longitude_deg:.6f}, 绝对高度: {position.absolute_altitude_m:.2f}m, 相对高度: {position.relative_altitude_m:.2f}m"
-                self.position_publisher.publish(position_msg)
+                self.publisher.publish(position_msg)
                 
             except Exception as e:
-                self.logger.error(f"发布位置信息失败: {e}")
+                self.logger.error(f"发布无人机信息失败: {e}")
+
+    async def _publish_position_ned_info(self,pisition_ned):
+        """发布无人机信息"""
+        if self.publisher:
+            try:
+                # 发布详细位置信息
+                position_msg = String()
+                position_msg.data = f"北={pisition_ned.north_m:.2f}m, 东={pisition_ned.east_m:.2f}m, 下={pisition_ned.down_m:.2f}m"
+                self.publisher.publish(position_msg)
+                
+            except Exception as e:
+                self.logger.error(f"发布无人机信息失败: {e}")
+    async def _publish_yaw_info(self, yaw_deg):
+        """发布无人机信息"""
+        if self.publisher:
+            try:
+                # 发布详细位置信息
+                position_msg = String()
+                position_msg.data = f"偏航角={yaw_deg:.2f}°"
+                self.publisher.publish(position_msg)
+                
+            except Exception as e:
+                self.logger.error(f"发布无人机信息失败: {e}")

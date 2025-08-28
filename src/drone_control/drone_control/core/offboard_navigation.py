@@ -4,8 +4,9 @@
 """
 
 import asyncio
+import time
 from mavsdk import action
-from mavsdk.offboard import OffboardError, PositionNedYaw, VelocityBodyYawspeed, VelocityNedYaw,PositionGlobalYaw
+from mavsdk.offboard import PositionNedYaw, VelocityBodyYawspeed, VelocityNedYaw,PositionGlobalYaw
 from drone_control.utils.utils import observe_is_in_air
 import numpy as np
 class OffboardNavigationController:
@@ -40,20 +41,15 @@ class OffboardNavigationController:
             await self.start_offboard_mode()
 
             # 分阶段导航
-            self.logger.info(
-                f"{self}"
-            )
-
             await self.fly_to_target_altitude()
-            # await self.fly_to_target_position()
-            await self.stop_offboard_mode()
-            await self.drone.action.land()
+            await self.fly_to_target_position()
             
-            await observe_is_in_air(self.drone, self.logger)
             # 观察四周环境
             # await self.observe_environment()
             # await self.stop_offboard_mode()
             # await self.drone.action.hold()
+            # await self.drone.action.land()
+            # await observe_is_in_air(self.drone, self.logger)
 
         except Exception as e:
             self.logger.error(f"[板外导航] 导航失败: {e}")
@@ -64,38 +60,11 @@ class OffboardNavigationController:
             except:
                 pass
             raise
-
-    async def start_offboard_mode(self):
-        """启动板外模式"""
-        try:
-            await self.drone.offboard.set_position_ned(
-                PositionNedYaw(0.0, 0.0, 0.0, self.yaw_deg)
-            )
-            await self.drone.offboard.start()
-            self.logger.info("[板外导航] 板外模式已启动")
-        except Exception as e:
-            self.logger.error(f"[板外导航] 启动板外模式失败: {e}")
-            raise
-
-    async def observe_environment(self):
-        """观察四周环境"""
-        self.logger.info("[板外导航] 开始观察四周环境")
-
-        # 旋转180度观察
-        await self.drone.offboard.set_velocity_body(VelocityBodyYawspeed(0.0, 0.0, 0.0, 30.0))
-        await asyncio.sleep(2)
-
-
-        # 停止所有移动，确保完全静止
-        await self.drone.offboard.set_velocity_body(VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
-        await asyncio.sleep(1)  # 等待1秒确保停止
-
-        self.logger.info("[板外导航] 观察四周环境完成")
-
+    
     async def fly_to_target_altitude(self):
         """飞到目标高度 - 使用位置控制"""
         self.logger.info(f"[板外导航] 阶段1：飞到目标高度 {self.target_pos[2]:.2f}m")
-
+        
         # 使用位置控制飞到目标高度
         if self.drone_state.navigation_mode=='RELATIVE':
             await self.drone.offboard.set_position_ned(
@@ -103,15 +72,17 @@ class OffboardNavigationController:
             )
         else:
             await self.drone.offboard.set_position_global(
-                PositionGlobalYaw(self.current_global.latitude_deg, self.current_global.longitude_deg, self.target_pos[2], self.yaw_deg)
-            )
+                    PositionGlobalYaw(self.current_global.latitude_deg, self.current_global.longitude_deg, self.target_pos[2], self.yaw_deg,PositionGlobalYaw.AltitudeType.AGL)
+                )
+        
         # 等待到达目标高度
         # while True:
         #     altitude_diff = target_down - self.get_current_down()
         #     if abs(altitude_diff) <= 0.2:
         #         break
         #     await asyncio.sleep(0.1)  # 每0.5秒检查一次
-        await asyncio.sleep(7)
+        
+        await asyncio.sleep(6)
         self.logger.info(f"[板外导航] 已到达目标高度 {self.target_pos[2]:.2f}m")
 
                
@@ -129,7 +100,7 @@ class OffboardNavigationController:
             )
         else:
             await self.drone.offboard.set_position_global(
-                PositionGlobalYaw(self.target_pos[0], self.target_pos[1], self.target_pos[2], self.yaw_deg)
+                PositionGlobalYaw(self.target_pos[0], self.target_pos[1], self.target_pos[2], self.yaw_deg,PositionGlobalYaw.AltitudeType.AGL)
             )
         
         # 等待到达目标位置
@@ -147,9 +118,34 @@ class OffboardNavigationController:
         #     if horizontal_distance <= 0.4:
         #         break
         #     await asyncio.sleep(0.5)  # 每0.5秒检查一次
-        await asyncio.sleep(2)
+        await asyncio.sleep(3)
         self.logger.info(f"[板外导航] 已到达目标位置 北={self.target_pos[0]:.2f}m, 东={self.target_pos[1]:.2f}m")
 
+    async def start_offboard_mode(self):
+        """启动板外模式"""
+        await self.drone.offboard.set_position_ned(
+            PositionNedYaw(0.0, 0.0, 0.0, self.yaw_deg)
+        )
+        try:
+            await self.drone.offboard.start()
+            self.logger.info("[板外导航] 板外模式已启动")
+        except Exception as e:
+            self.logger.error(f"[板外导航] 启动板外模式失败: {e}")
+            raise
+
+    async def observe_environment(self):
+        """观察四周环境"""
+        self.logger.info("[板外导航] 开始观察四周环境")
+
+        # 旋转180度观察
+        await self.drone.offboard.set_velocity_body(VelocityBodyYawspeed(0.0, 0.0, 0.0, 30.0))
+        await asyncio.sleep(2)
+
+        # 停止所有移动，确保完全静止
+        await self.drone.offboard.set_velocity_body(VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
+        await asyncio.sleep(1)  # 等待1秒确保停止
+
+        self.logger.info("[板外导航] 观察四周环境完成")
 
     async def stop_offboard_mode(self):
         """停止板外模式"""

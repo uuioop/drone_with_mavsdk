@@ -69,14 +69,9 @@ class PrecisionLand:
 
     def start_precision_land(self):
         """开始精准降落。"""
-        # try:
-        #     await self.drone.offboard.start()
-        # except Exception as e:
-        #     self.logger.error(f"开始精准降落失败: {e}")
         self.drone_state.search_started = True
         self._switch_to_state(PrecisionLandState.SEARCH)
         self._generate_search_waypoints()
-        self.logger.info(f"搜索航点: { self.search_waypoints}")
         self.logger.info(f"当前位置: { np.array([self.drone_state.current_position_ned.north_m, self.drone_state.current_position_ned.east_m, self.drone_state.current_position_ned.down_m])}")
 
     def _get_tag_world(self, position, orientation):
@@ -136,87 +131,93 @@ class PrecisionLand:
         if not self.drone_state.search_started:
             return
         target_lost = self._check_target_timeout()
-        
+
         if target_lost and not self._target_lost_prev:
             self.logger.warning("[PL] 目标丢失")
         elif not target_lost and self._target_lost_prev:
             self.logger.info("[PL] 目标重新获取")
-
         self._target_lost_prev = target_lost
         # --- 状态机逻辑 ---
-        if self.state == PrecisionLandState.IDLE:
-            await self.drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0)) 
-        elif self.state == PrecisionLandState.SEARCH:
-            if not self._check_target_timeout() and self._tag.position is not None:
-                self._approach_altitude = self.drone_state.current_position_ned.down_m
-                self._switch_to_state(PrecisionLandState.APPROACH)
-                return 
+        try:
+            if self.state == PrecisionLandState.IDLE:
+                await self.drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0)) 
+            elif self.state == PrecisionLandState.SEARCH:
+                if not self._check_target_timeout() and self._tag.position is not None:
+                    self._approach_altitude = self.drone_state.current_position_ned.down_m
+                    self._switch_to_state(PrecisionLandState.APPROACH)
+                    return 
+                    
+                # 获取当前目标航点
+                if not self.search_waypoints: # 如果航点列表为空，则不执行后续操作
+                    self.logger.warning("[PL_SEARCH] 搜索航点列表为空，无法导航。")
+                    await self.drone.offboard.set_velocity_ned(VelocityNedYaw(0.0, 0.0, 0.0, 0.0))
+                    return
+
+                target_waypoint = self.search_waypoints[self.search_waypoint_index]
                 
-            # 获取当前目标航点
-            target_waypoint = self.search_waypoints[self.search_waypoint_index]
-            
-            # 检查是否到达当前航点
-            if self._position_reached(target_waypoint):
-                self.search_waypoint_index += 1
+                # 检查是否到达当前航点
+                if self._position_reached(target_waypoint):
+                    self.search_waypoint_index += 1
+                    
+                    # 如果已完成所有航点，重新开始
+                    if self.search_waypoint_index >= len(self.search_waypoints):
+                        self.search_waypoint_index = 0
+                        self.logger.info("[PL] 完成一圈搜索，重新开始")
+                    else:
+                        self.logger.debug("[PL] 前往搜索航点 %d/%d" % 
+                                    (self.search_waypoint_index + 1, 
+                                    len(self.search_waypoints)))
                 
-                # 如果已完成所有航点，重新开始
-                if self.search_waypoint_index >= len(self.search_waypoints):
-                    self.search_waypoint_index = 0
-                    self.logger.info("[PL] 完成一圈搜索，重新开始")
-                else:
-                    self.logger.debug("[PL] 前往搜索航点 %d/%d" % 
-                                (self.search_waypoint_index + 1, 
-                                 len(self.search_waypoints)))
-            
-            # 计算到当前目标航点的速度指令
-            target_waypoint = self.search_waypoints[self.search_waypoint_index]
-            # self.logger.info(f"目标航点: {target_waypoint}")
-            vx,vy=self._calculate_velocity_to_waypoint(target_waypoint)
-            await self.drone.offboard.set_velocity_ned(VelocityNedYaw(vx, vy, 0.0, 0.0))
-            # await self.drone.offboard.set_position_ned(PositionNedYaw(target_waypoint[0], target_waypoint[1], target_waypoint[2], 0.0))
+                # 计算到当前目标航点的速度指令
+                target_waypoint = self.search_waypoints[self.search_waypoint_index]
+                vx,vy=self._calculate_velocity_to_waypoint(target_waypoint)
+                await self.drone.offboard.set_velocity_ned(VelocityNedYaw(vx, vy, 0.0, 0.0))
+                # await self.drone.offboard.set_position_ned(PositionNedYaw(target_waypoint[0], target_waypoint[1], target_waypoint[2], 0.0))
 
-        elif self.state == PrecisionLandState.APPROACH:
-            if target_lost:
-                self.logger.error(f"Failed! Target lost during {self.state.value}")
-                self._switch_to_state(PrecisionLandState.SEARCH)
-                return 
-            target_position = np.array([self._tag.position[0], self._tag.position[1], self._approach_altitude])
-    
-            # 检查是否到达目标位置
-            if self._position_reached(target_position):
-                self._switch_to_state(PrecisionLandState.DESCEND)
-            
-            vx,vy=self._calculate_velocity_to_waypoint(target_position)
-            await self.drone.offboard.set_velocity_ned(VelocityNedYaw(vx, vy, 0.0, 0.0))
-            # await self.drone.offboard.set_position_ned(PositionNedYaw(target_position[0], target_position[1], target_position[2], 0.0))
+            elif self.state == PrecisionLandState.APPROACH:
+                if target_lost:
+                    self.logger.error(f"Failed! Target lost during {self.state.value}")
+                    self._switch_to_state(PrecisionLandState.SEARCH)
+                    return 
+                target_position = np.array([self._tag.position[0], self._tag.position[1], self._approach_altitude])
+        
+                # 检查是否到达目标位置
+                if self._position_reached(target_position):
+                    self._switch_to_state(PrecisionLandState.DESCEND)
+                
+                vx,vy=self._calculate_velocity_to_waypoint(target_position)
+                await self.drone.offboard.set_velocity_ned(VelocityNedYaw(vx, vy, 0.0, 0.0))
+                # await self.drone.offboard.set_position_ned(PositionNedYaw(target_position[0], target_position[1], target_position[2], 0.0))
 
-        elif self.state == PrecisionLandState.DESCEND:
-            if target_lost:
-                self.logger.error(f"Failed! Target lost during {self.state.value}")
-                self._switch_to_state(PrecisionLandState.SEARCH)
-                return 
-            
-            # 计算对准目标的水平速度
-            vx, vy = self._calculate_velocity_setpoint_xy()  # 计算XY平面速度
-            vz = self.params['descent_vel']  # 下降速度
-            
-            # 计算偏航角（从目标标记的四元数中提取）
-            # yaw = self._quaternion_to_yaw(self._tag.orientation)
-            
-            # 如果检测到着陆，切换到完成状态
+            elif self.state == PrecisionLandState.DESCEND:
+                if target_lost:
+                    self.logger.error(f"Failed! Target lost during {self.state.value}")
+                    self._switch_to_state(PrecisionLandState.SEARCH)
+                    return 
+                
+                # 计算对准目标的水平速度
+                vx, vy = self._calculate_velocity_to_waypoint(self._tag.position)  # 计算XY平面速度
+                vz = self.params['descent_vel']  # 下降速度
+                
+                # 计算偏航角（从目标标记的四元数中提取）
+                # yaw = self._quaternion_to_yaw(self._tag.orientation)
+                
+                # 如果检测到着陆，切换到完成状态
 
-            """降落不行"""
-            if self.drone_state.landed:
-                self.logger.info("[PL] 无人机已检测到着陆，任务完成")
-                self._switch_to_state(PrecisionLandState.FINISHED)
-            
-            await self.drone.offboard.set_velocity_ned(VelocityNedYaw(vx, vy, vz, 0.0))
-            
+                """降落不行"""
+                if self.drone_state.landed:
+                    self.logger.info("[PL] 无人机已检测到着陆，任务完成")
+                    self._switch_to_state(PrecisionLandState.FINISHED)
+                
+                await self.drone.offboard.set_velocity_ned(VelocityNedYaw(vx, vy, vz, 0.0))
+                
 
-        elif self.state == PrecisionLandState.FINISHED:
-            self.drone_state.search_started = False
-            self._switch_to_state(PrecisionLandState.IDLE)
-            await self.drone.offboard.stop()
+            elif self.state == PrecisionLandState.FINISHED:
+                self.drone_state.search_started = False
+                self._switch_to_state(PrecisionLandState.IDLE)
+                await self.drone.offboard.stop()
+        except Exception as e:
+            self.logger.error(f"[PL] 状态机更新异常: {e}")
         
 
     
@@ -294,7 +295,7 @@ class PrecisionLand:
         self.search_waypoints = waypoints
         self.search_waypoint_index = 0
         
-    def _calculate_velocity_to_waypoint(self, target_waypoint: np.ndarray) -> Tuple[float, float]:
+    def _calculate_velocity_to_waypoint(self, target_waypoint: np.ndarray = None) -> Tuple[float, float]:
         """计算到目标航点的速度指令。"""
         current_pos = np.array([
             self.drone_state.current_position_ned.north_m,
@@ -318,36 +319,36 @@ class PrecisionLand:
             
         return v_xy[0], v_xy[1]  # 返回vx, vy
 
-    def _calculate_velocity_setpoint_xy(self) -> Tuple[float, float]:
-        """根据目标的相机坐标系位置，计算水平速度指令。"""
-        if not self._tag.is_valid():
-            return 0.0, 0.0 
-        p_gain=self.params['vel_p_gain']
-        i_gain=self.params['vel_i_gain']
+    # def _calculate_velocity_setpoint_xy(self) -> Tuple[float, float]:
+    #     """根据目标的相机坐标系位置，计算水平速度指令。"""
+    #     if not self._tag.is_valid():
+    #         return 0.0, 0.0 
+    #     p_gain=self.params['vel_p_gain']
+    #     i_gain=self.params['vel_i_gain']
 
-        # P控制器
-        delta_pos_x=self.drone_state.current_position_ned.north_m-self._tag.position[0]
-        delta_pos_y=self.drone_state.current_position_ned.east_m-self._tag.position[1]
-        # I控制器
-        self._vel_x_integral+=delta_pos_x
-        self._vel_y_integral+=delta_pos_y
-        max_integral=self.params['max_vel_xy']
-        self._vel_x_integral=np.clip(self._vel_x_integral,-max_integral,max_integral)
-        self._vel_y_integral=np.clip(self._vel_y_integral,-max_integral,max_integral)
+    #     # P控制器
+    #     delta_pos_x=self.drone_state.current_position_ned.north_m-self._tag.position[0]
+    #     delta_pos_y=self.drone_state.current_position_ned.east_m-self._tag.position[1]
+    #     # I控制器
+    #     self._vel_x_integral+=delta_pos_x
+    #     self._vel_y_integral+=delta_pos_y
+    #     max_integral=self.params['max_vel_xy']
+    #     self._vel_x_integral=np.clip(self._vel_x_integral,-max_integral,max_integral)
+    #     self._vel_y_integral=np.clip(self._vel_y_integral,-max_integral,max_integral)
 
-        Xp=delta_pos_x* p_gain
-        Xi=self._vel_x_integral* i_gain
-        Yp=delta_pos_y* p_gain
-        Yi=self._vel_y_integral* i_gain
+    #     Xp=delta_pos_x* p_gain
+    #     Xi=self._vel_x_integral* i_gain
+    #     Yp=delta_pos_y* p_gain
+    #     Yi=self._vel_y_integral* i_gain
         
-        # Sum P and I gains
-        vx=-(Xp+Xi)
-        vy=-(Yp+Yi)
+    #     # Sum P and I gains
+    #     vx=-(Xp+Xi)
+    #     vy=-(Yp+Yi)
         
-        vx=np.clip(vx,-self.params['max_vel_xy'],self.params['max_vel_xy'])
-        vy=np.clip(vy,-self.params['max_vel_xy'],self.params['max_vel_xy'])
+    #     vx=np.clip(vx,-self.params['max_vel_xy'],self.params['max_vel_xy'])
+    #     vy=np.clip(vy,-self.params['max_vel_xy'],self.params['max_vel_xy'])
        
-        return vx, vy
+    #     return vx, vy
 
     def _switch_to_state(self, new_state: PrecisionLandState):
         """切换状态并记录日志。"""
