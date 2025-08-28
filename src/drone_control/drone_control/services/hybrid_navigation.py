@@ -14,14 +14,12 @@ class HybridNavigationController:
     def __init__(self, drone, logger, drone_state,license_plate_result):
         self.drone = drone
         self.logger = logger
-        self.navigation_phase = "IDLE"  # IDLE, MISSION, OFFBOARD
         self.drone_state = drone_state
         self.license_plate_result=license_plate_result
 
     async def navigate_to_position(self):
         """混合导航：先任务模式，到达后切换板外模式"""
         try:
-            self.navigation_phase = "MISSION"
             # 阶段1：使用任务模式导航到目标位置
             await self.start_mission_navigation()
             await self.wait_until_mission_finished()
@@ -64,31 +62,26 @@ class HybridNavigationController:
                     MissionItem.VehicleAction.NONE,
                 )
             )
-            mission_items.append(
-                MissionItem(
-                    tar_lat,
-                    tar_lon,
-                    tar_alt,
-                    1,
-                    True,  # 纬度, 经度, 高度, 速度, 接受
-                    float("nan"),
-                    float("nan"),  # 相机动作参数
-                    MissionItem.CameraAction.NONE,
-                    float("nan"),
-                    float("nan"),  # 相机参数
-                    2.0,
-                    float("nan"),
-                    float("nan"),  # 相机参数
-                    MissionItem.VehicleAction.NONE,
-                )
-            )
+            # mission_items.append(
+            #     MissionItem(
+            #         tar_lat,
+            #         tar_lon,
+            #         tar_alt,
+            #         1,
+            #         True,  # 纬度, 经度, 高度, 速度, 接受
+            #         float("nan"),
+            #         float("nan"),  # 相机动作参数
+            #         MissionItem.CameraAction.NONE,
+            #         float("nan"),
+            #         float("nan"),  # 相机参数
+            #         2.0,
+            #         float("nan"),
+            #         float("nan"),  # 相机参数
+            #         MissionItem.VehicleAction.NONE,
+            #     )
+            # )
             mission_plan = MissionPlan(mission_items)
             # 设置任务完成后不自动返航
-            # await self.drone.action.set_home_position(
-            #     cur_lat,
-            #     cur_lon,
-            #     cur_alt
-            # )
             await self.drone.mission.set_return_to_launch_after_mission(False)
             # 上传任务
             await self.drone.mission.upload_mission(mission_plan)
@@ -99,10 +92,7 @@ class HybridNavigationController:
 
             # 启动任务
             await self.drone.mission.start_mission()
-            # self.mission_active = True
-
             self.logger.info("[任务模式] 任务已启动")
-
         except Exception as e:
             self.logger.error(f"[任务模式] 启动失败: {e}")
             raise
@@ -115,7 +105,7 @@ class HybridNavigationController:
         self.logger.info("[任务模式] 开始位置误差检测...")
         # 位置误差阈值
         position_tolerance = 2 
-        altitude_tolerance = 1
+        altitude_tolerance = 0.5
         while True:         
               
             # 获取当前位置
@@ -157,8 +147,6 @@ class HybridNavigationController:
             await self.drone.offboard.start()
         except OffboardError as error:
             self.logger.error(f"板外模式启动失败: {error._result.result}")
-            self.logger.error("降落")
-            await observe_is_in_air(self.drone, self.logger)
             raise
         # 观察四周环境
         self.logger.info("[混合导航] 阶段3：观察四周环境")

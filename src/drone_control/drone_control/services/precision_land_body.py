@@ -37,12 +37,12 @@ class PrecisionLand:
     完全基于机体坐标系 (Body Frame)，不依赖GPS/NED坐标系。
     """
     
-    def __init__(self, drone, logger, drone_state, tf_buffer, tf_listener):
+    def __init__(self, drone, logger, drone_state):
         self.drone = drone
         self.logger = logger
         self.drone_state = drone_state
-        self.tf_buffer = tf_buffer
-        self.tf_listener = tf_listener
+        # self.tf_buffer = tf_buffer
+        # self.tf_listener = tf_listener
         
         # 状态管理
         self.state = PrecisionLandState.IDLE
@@ -55,7 +55,7 @@ class PrecisionLand:
             # --- 速度與閾值 ---
             'descent_vel': 0.6,       # 下降速度 (m/s)，建議值0.2-0.5，越小越穩定
             'max_vel_xy': 2.0,        # 最大水平飛行速度 (m/s)，限制过大的速度指令
-            'target_timeout': 4.0,    # 目标丢失超时时间 (s)
+            'target_timeout': 5.0,    # 目标丢失超时时间 (s)
             'delta_position': 0.2,    # 水平位置到達閾值 (m)，越小越精準但可能更難達到
             
         }
@@ -64,11 +64,11 @@ class PrecisionLand:
 
     async def start_precision_land(self):
         """外部调用此函数以开始精准降落流程。"""
-        if self.drone.offboard.is_active():
+        if not self.drone.offboard.is_active():
             await self.drone.offboard.set_velocity_body(VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
             await self.drone.offboard.start()
         self.drone_state.search_started = True
-        self._switch_to_state(PrecisionLandState.SEARCH) # 从搜索开始更安全
+        self._switch_to_state(PrecisionLandState.SEARCH) # 从搜索开始
         self.logger.info("[PL] 开始精准降落流程，进入搜索模式")
 
     def process_tag_detection(self, position_cam, orientation_cam_quat):
@@ -77,7 +77,7 @@ class PrecisionLand:
         输入为相机坐标系下的位置和姿态。
         """
         # 相机到机体的转换矩阵
-        # 假设相机朝下安装，且相机坐标系为：X右, Y下, Z前
+        # 相机朝下安装，且相机坐标系为：X右, Y下, Z前
         # 相机坐标 → 机体系 FRD
         R_cb = np.array([
              [0, -1, 0], # 机体X轴 = 相机-Y轴

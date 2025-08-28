@@ -10,9 +10,9 @@ import asyncio
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
-import tf2_ros
-import tf_transformations
-from geometry_msgs.msg import TransformStamped
+# import tf2_ros
+# import tf_transformations
+# from geometry_msgs.msg import TransformStamped
 from mavsdk import System
 from std_srvs.srv import Trigger
 from std_msgs.msg import String
@@ -25,9 +25,7 @@ from drone_control.srv import Nav, Pos
 from drone_control.core import DroneState, LicensePlateProcessor, DroneStatusMonitor ,OffboardNavigationController
 from drone_control.services import HybridNavigationController, PrecisionLand
 
-from drone_control.utils.utils import validate_gps_coordinates
-
-
+from drone_control.utils.utils import validate_gps_coordinates,observe_is_in_air
 
 class DroneControlNode(Node):
     """无人机控制节点主类 - 支持板外模式导航和ArUco标记跟踪"""
@@ -40,8 +38,8 @@ class DroneControlNode(Node):
         self.drone_state = DroneState()
         self.system_address="serial:///dev/ttyACM0:115200"
         # tf2
-        self.tf_buffer   = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        # self.tf_buffer   = tf2_ros.Buffer()
+        # self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
         # 板外模式状态
         self.offboard_active = False
@@ -53,9 +51,7 @@ class DroneControlNode(Node):
         self.precision_land_controller = PrecisionLand(
             self.drone, 
             self.get_logger(), 
-            self.drone_state,
-            self.tf_buffer,
-            self.tf_listener
+            self.drone_state
         )
 
         self.offboard_navigation_controller = OffboardNavigationController(
@@ -90,8 +86,6 @@ class DroneControlNode(Node):
             Pos, 'drone/navigation', self._sync_navigation_callback)
         self.hybrid_navigation_srv = self.create_service(
             Pos, 'drone/hybrid_navigation', self._sync_hybrid_navigation_callback)
-        # self.absolute_navigation_srv = self.create_service(
-        #     Nav, 'drone/absolute_navigation', self._sync_absolute_navigation_callback)
 
     def _setup_subscriptions(self):
         """设置订阅和发布"""
@@ -133,8 +127,7 @@ class DroneControlNode(Node):
             self.precision_land_controller.process_tag_detection(
             position_cam=np.array([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z], dtype=float), 
             orientation_cam_quat=np.array([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w], dtype=float)
-            )
-            
+            )       
 
     def _precision_land_update_callback(self):
         """精准降落状态机主更新循环。"""
@@ -172,7 +165,7 @@ class DroneControlNode(Node):
             self.drone_state.update_target_position(request.x,request.y,request.z,request.w)
             await self.hybrid_navigation_controller.navigate_to_position()
             self.drone_state.reset_target_position()
-            # await self.precision_land_controller.start_precision_land()
+            await self.precision_land_controller.start_precision_land()
             response.success = True
             response.message = f"混合导航完成"
             self.get_logger().info(response.message)
@@ -180,7 +173,6 @@ class DroneControlNode(Node):
             response.success = False
             response.message = f"混合导航错误: {str(e)}"
             self.drone_state.reset_target_position()
-            await self.drone.action.land()
             await observe_is_in_air(self.drone, self.get_logger())
             self.get_logger().error(response.message)
         return response
@@ -223,7 +215,7 @@ class DroneControlNode(Node):
             self.offboard_active = True
             await self.offboard_navigation_controller.navigate_to_position()
             self.drone_state.reset_target_position()
-            # await self.precision_land_controller.start_precision_land()
+            await self.precision_land_controller.start_precision_land()
             self.offboard_active = False
             response.success = True
             response.message = f"导航完成"
@@ -233,6 +225,7 @@ class DroneControlNode(Node):
             response.success = False
             response.message = f"导航错误: {str(e)}"
             self.drone_state.reset_target_position()
+            await observe_is_in_air(self.drone, self.logger)
             self.get_logger().error(response.message)
         return response
 
