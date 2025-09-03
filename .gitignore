@@ -49,3 +49,17 @@ qtcreator-*
 
 # Catkin custom files
 CATKIN_IGNORE
+
+
+
+# Ignore Visual Studio files
+*.vc.db
+*.sdf
+
+# Ignore VSCode personal settings, but keep team-shared files
+.vscode/*
+!/.vscode/settings.json
+!/.vscode/extensions.json
+!/.vscode/launch.json
+!/.vscode/tasks.json
+!/.vscode/c_cpp_properties.json

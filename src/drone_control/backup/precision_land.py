@@ -51,11 +51,11 @@ class PrecisionLand:
         
         # 控制参数 (可配置)
         self.params = {
-            'descent_vel': 0.6,       # 下降速度 (m/s)
+            'descent_vel': 0.2,       # 下降速度 (m/s)
             'vel_p_gain': 1.7,             # 位置P增益
             'vel_i_gain': 0.0,            # 位置I增益
-            'max_vel_xy': 3.0,        # 最大水平速度 (m/s)
-            'target_timeout': 1.0,    # 目标超时时间 (s)
+            'max_vel_xy': 1.0,        # 最大水平速度 (m/s)
+            'target_timeout': 5.0,    # 目标超时时间 (s)
             'delta_position': 0.2, # 位置到达阈值 (m)
             'delta_velocity': 0.2,  # 速度阈值 (m/s)
 

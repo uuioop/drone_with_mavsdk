@@ -5,7 +5,8 @@ SQLite数据库模块
 """
 
 from .license_plate_database import LicensePlateDatabase
-
+from .license_plate_process import LicensePlateProcessor
 __all__ = [
-    'LicensePlateDatabase'
+    'LicensePlateDatabase',
+    'LicensePlateProcessor'
 ] 

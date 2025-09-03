@@ -11,7 +11,12 @@ class DroneState:
     def __init__(self):
         self.connected = False
         self._landed = False
-        self._search_start = False
+        # 精准降落
+        self._search_started = False
+        # 确认地址
+        self.confirm_started=False
+        # 检测到标记
+        self._tag_detected=False
         self.current_flight_mode = "UNKNOWN"
         self.current_position = None
         self.target_position = np.array([0, 0, 0, 0],dtype=float)
@@ -19,7 +24,6 @@ class DroneState:
         self.home_position = None
         # NED坐标系下的当前位置
         self.current_position_ned = None
-
         self.current_velocity_ned = None
 
         # 四元数姿态
@@ -32,6 +36,15 @@ class DroneState:
             self.connected = connected
 
     @property
+    def tag_detected(self):
+        return self._tag_detected
+
+    @tag_detected.setter
+    def tag_detected(self,is_detected: bool):
+        if not self._tag_detected == is_detected:
+            self._tag_detected = is_detected
+
+    @property
     def landed(self):
         return self._landed
 
@@ -42,13 +55,16 @@ class DroneState:
 
     @property
     def search_started(self):
-        return self._search_start
+        return self._search_started
 
     @search_started.setter
     def search_started(self,is_search_started: bool):
-        if not self._search_start == is_search_started:
-            self._search_start = is_search_started
+        if not self._search_started == is_search_started:
+            self._search_started = is_search_started
 
+    def update_confirm_start(self,confirm_started: bool):
+        if not self.confirm_started == confirm_started:
+            self.confirm_started = confirm_started
 
     def update_flight_mode(self, mode: str):
         """更新飞行模式"""

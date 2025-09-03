@@ -5,8 +5,13 @@
 
 from .hybrid_navigation import HybridNavigationController
 from .precision_land_body import PrecisionLand
-
+from .offboard_navigation import OffboardNavigationController
+from .confirm_position import ConfirmPositionController
+from .mavsdk_control import MavsdkController
 __all__ = [
     'HybridNavigationController',
-    'PrecisionLand'
+    'PrecisionLand',
+    'OffboardNavigationController',
+    'ConfirmPositionController',
+    'MavsdkController'
 ]

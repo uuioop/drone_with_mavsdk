@@ -12,7 +12,7 @@
 class ArucoTrackerNode : public rclcpp::Node
 {
 public:
-	ArucoTrackerNode();
+	explicit ArucoTrackerNode(const rclcpp::NodeOptions & options);
 
 private:
 	void loadParameters();

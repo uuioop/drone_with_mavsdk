@@ -3,11 +3,14 @@
 号牌处理模块
 """
 
+from drone_control.SQLite import LicensePlateDatabase
+
 class LicensePlateProcessor:
     """号牌处理类"""
     def __init__(self, logger):
         self.logger = logger
-        self.license_plate_database = []
+        # 初始化号牌数据库
+        self.license_plate_database = LicensePlateDatabase()
         self.current_target_plate = ""
         self.recognized_plate = ""
         

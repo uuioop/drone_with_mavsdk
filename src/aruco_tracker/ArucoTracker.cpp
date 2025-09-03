@@ -1,8 +1,8 @@
 #include "ArucoTracker.hpp"
 #include <sstream>
 
-ArucoTrackerNode::ArucoTrackerNode()
-	: Node("aruco_tracker_node")
+ArucoTrackerNode::ArucoTrackerNode(const rclcpp::NodeOptions & options)
+	: Node("aruco_tracker", options)
 {
 	loadParameters();
 
@@ -32,11 +32,13 @@ void ArucoTrackerNode::loadParameters()
 {
 	declare_parameter<int>("aruco_id", 0);
 	declare_parameter<int>("dictionary", 2); // DICT_4X4_250
-	declare_parameter<double>("marker_size", 0.196); // 0.5 m
+	declare_parameter<double>("marker_size", 0.5);
 
 	get_parameter("aruco_id", _param_aruco_id);
 	get_parameter("dictionary", _param_dictionary);
 	get_parameter("marker_size", _param_marker_size);
+	RCLCPP_INFO(get_logger(), "Id: %d",_param_aruco_id);
+
 }
 
 void ArucoTrackerNode::image_callback(const sensor_msgs::msg::Image::SharedPtr msg)
@@ -77,7 +79,7 @@ void ArucoTrackerNode::image_callback(const sensor_msgs::msg::Image::SharedPtr m
 
 				// Use PnP solver to estimate pose
 				cv::Vec3d rvec, tvec;
-				cv::solvePnP(objectPoints, undistortedCorners[i], _camera_matrix, cv::noArray(), rvec, tvec);
+				cv::solvePnP(objectPoints, undistortedCorners[i], _camera_matrix, cv::noArray(), rvec, tvec, false, cv::SOLVEPNP_IPPE);
 				// Annotate the image
 				cv::drawFrameAxes(cv_ptr->image, _camera_matrix, cv::noArray(), rvec, tvec, _param_marker_size);
 
@@ -102,7 +104,8 @@ void ArucoTrackerNode::image_callback(const sensor_msgs::msg::Image::SharedPtr m
 
 				// Annotate the image
 				annotate_image(cv_ptr, tvec);
-
+				
+				
 				// NOTE: we break here, meaning we only publish the pose of the first target we see
 				break;
 			}
@@ -174,7 +177,8 @@ void ArucoTrackerNode::annotate_image(cv_bridge::CvImagePtr image, const cv::Vec
 int main(int argc, char** argv)
 {
 	rclcpp::init(argc, argv);
-	rclcpp::spin(std::make_shared<ArucoTrackerNode>());
+	rclcpp::NodeOptions options;
+	rclcpp::spin(std::make_shared<ArucoTrackerNode>(options));
 	rclcpp::shutdown();
 	return 0;
 }
