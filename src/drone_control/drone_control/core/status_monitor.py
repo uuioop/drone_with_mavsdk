@@ -40,24 +40,6 @@ class DroneStatusMonitor:
             self.observer_is_landed()
         ]
         await asyncio.gather(*tasks)
-        # while True:
-        #     if self.drone_state.connected:
-        #         try:                  
-        #             # 执行监控任务（分别处理异常）
-        #             # await self._monitor_health()
-        #             task=[
-        #                 self._monitor_flight_mode(),
-        #                 self._monitor_position(),
-        #                 self._monitor_attitude(),
-        #                 self._monitor_velocity(),
-        #                 self.observer_is_landed()
-        #             ]
-        #             await asyncio.gather(*task,return_exceptions=True)
-        #             # await self._monitor_mission_progress(self.drone_state.current_position, self.drone_state.target_position)                    
-        #         except Exception as e:
-        #             self.logger.error(f"状态监控异常: {e}")
-            
-        #     await asyncio.sleep(0.1)
     
     async def _check_connection(self):
         """检查无人机连接状态"""
@@ -116,24 +98,6 @@ class DroneStatusMonitor:
                 return False
             return True
 
-    # async def _monitor_health(self):
-    #     """监控系统健康状态"""
-    #     try:
-    #         async for health in self.drone.telemetry.health():
-    #             status = f"系统状态: 可解锁={health.is_armable} GPS锁定={health.is_global_position_ok}"
-    #             self.logger.info(status, throttle_duration_sec=5)
-    #             break
-    #     except Exception as e:
-    #         self.logger.warn(f"健康状态监控异常: {e}")
-    # async def _get_home_position(self):
-    #     """获取家位置"""
-    #     try:
-    #         async for home in self.drone.telemetry.home():
-    #             self.drone_state.update_home_position(home)
-    #             self.logger.info(f"家位置: {home}")
-    #             break
-    #     except Exception as e:
-    #         self.logger.warn(f"家位置监控异常: {e}")
 
     async def _monitor_flight_mode(self):
         """监控飞行模式"""
@@ -143,30 +107,9 @@ class DroneStatusMonitor:
                     old_mode = self.drone_state.current_flight_mode
                     self.drone_state.update_flight_mode(flight_mode)
                     self.logger.info(f"飞行模式切换: {old_mode} → {flight_mode}")
-                break
         except Exception as e:
             self.logger.warn(f"飞行模式监控异常: {e}")
     
-    # async def _monitor_position(self):
-    #     """监控GPS位置"""
-    #     try:
-    #         # 监控全局位置
-    #         async for position in self.drone.telemetry.position():
-    #             if position != self.drone_state.current_position:
-    #                 self.drone_state.update_position(position)
-    #                 await self._publish_position_info(self.drone_state.current_position)
-    #             break
-                
-    #         # 监控NED位置
-    #         async for pv_ned in self.drone.telemetry.position_velocity_ned():
-    #             # 更新NED位置
-    #             if pv_ned.position != self.drone_state.current_position_ned:
-    #                 self.drone_state.current_position_ned=pv_ned.position
-    #                 await self._publish_position_ned_info(self.drone_state.current_position_ned)
-    #             break
-                
-    #     except Exception as e:
-    #         self.logger.warn(f"位置监控异常: {e}")
     async def _monitor_global_position(self):
         """监控GPS位置"""
         try:
@@ -227,7 +170,8 @@ class DroneStatusMonitor:
         """ 
         async for landed_state in self.drone.telemetry.landed_state():
             if landed_state == LandedState.ON_GROUND:
-                self.drone_state.landed = True
+                if not self.drone_state.landed:
+                    self.drone_state.landed = True
             else:
                 self.drone_state.landed = False
 

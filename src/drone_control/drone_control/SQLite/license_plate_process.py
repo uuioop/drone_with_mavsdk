@@ -38,9 +38,6 @@ class LicensePlateProcessor:
             self.logger.info(f"[号牌比对] 未设置目标号牌或识别到的号牌")
             return False
             
-            
-
-            
     def set_target_license_plate(self, plate_number):
         """设置目标号牌"""
         self.current_target_plate = plate_number
@@ -48,17 +45,17 @@ class LicensePlateProcessor:
 
     def add_license_plate_to_database(self, plate_number):
         """添加号牌到数据库"""
-        if plate_number not in self.license_plate_database:
-            self.license_plate_database.append(plate_number)
+        if not self.license_plate_database.is_in_database(plate_number):
+            self.license_plate_database.add(plate_number)
             self.logger.info(f"[数据库] 添加号牌到数据库: {plate_number}")
         else:
             self.logger.info(f"[数据库] 号牌已存在: {plate_number}")
             
     def remove_license_plate_from_database(self, plate_number):
         """从数据库中移除号牌"""
-        if plate_number in self.license_plate_database:
-            self.license_plate_database.remove(plate_number)
-            self.logger.info(f"[数据库] 移除号牌: {plate_number}")
+        if self.license_plate_database.is_in_database(plate_number):
+            self.license_plate_database.delete(plate_number)
+            self.logger.info(f"[数据库] 从数据库移除号牌: {plate_number}")
         else:
             self.logger.info(f"[数据库] 号牌不存在: {plate_number}")
             

@@ -42,12 +42,12 @@ def generate_launch_description():
             output='screen',
         ),
         ExecuteProcess(
-            cmd=['ros2', 'run', 'ros_gz_bridge', 'parameter_bridge', '/left_ir_camera@sensor_msgs/msg/Image@gz.msgs.Image', '--ros-args', '-r', '/left_ir_camera:=/depth_camera/infra1/image_rect_raw'],
+            cmd=['ros2', 'run', 'ros_gz_bridge', 'parameter_bridge', '/world/default/model/x500_depth_0/model/depth_cam_front/link/camera_link/sensor/left_ir_camera/image@sensor_msgs/msg/Image@gz.msgs.Image', '--ros-args', '-r', '/world/default/model/x500_depth_0/model/depth_cam_front/link/camera_link/sensor/left_ir_camera/image:=/depth_camera/infra1/image_rect_raw'],
             name='ir_image_bridge',
             output='screen',
         ),
         ExecuteProcess(
-            cmd=['ros2', 'run', 'ros_gz_bridge', 'parameter_bridge', '/world/default/model/x500_depth_0/model/depth_cam_front/link/camera_link/sensor/IMX214/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo', '--ros-args', '-r', '/world/default/model/x500_depth_0/model/depth_cam_front/link/camera_link/sensor/IMX214/camera_info:=/depth_camera/camera_info'],
+            cmd=['ros2', 'run', 'ros_gz_bridge', 'parameter_bridge', '/world/default/model/x500_depth_0/model/depth_cam_front/link/camera_link/sensor/left_ir_camera/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo', '--ros-args', '-r', '/world/default/model/x500_depth_0/model/depth_cam_front/link/camera_link/sensor/left_ir_camera/camera_info:=/depth_camera/camera_info'],
             name='rgb_camera_info_bridge',
             output='screen',
         ),

@@ -52,7 +52,11 @@ def generate_launch_description():
             name='infra_aruco_tracker',
             namespace='infra_tracker',
             output='screen',
-            parameters=[params_file],
+            parameters=[{
+                'aruco_id': 0,
+                'dictionary': 2,
+                'marker_size': 0.196
+            }],
             remappings=[
                 # 輸入話題重映射
                 ('/image_raw', '/camera/camera/infra1/image_rect_raw'),

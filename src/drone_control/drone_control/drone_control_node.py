@@ -81,7 +81,8 @@ class DroneControlNode(Node):
         
         # 启动MAVSDK事件循环线程
         self._start_event_loop()
-
+        # self.license_plate_processor.add_license_plate_to_database("闽DA01010231")
+        # self.license_plate_processor.set_target_license_plate("闽DA01010231")
 
         self.get_logger().info("节点初始化完成")
 
@@ -124,20 +125,6 @@ class DroneControlNode(Node):
         """先连接无人机，再开始持续监控"""
         await self.mavsdk_controller._connect_to_drone(self.system_address)
         await self.status_monitor.start_monitoring()
-    # def _start_event_loop(self):
-    #     """启动MAVSDK事件循环线程"""
-    #     self.loop.run_until_complete(
-    #         self.mavsdk_controller._connect_to_drone(self.system_address)
-    #     )
-    #     def run_loop():
-    #         asyncio.set_event_loop(self.loop)
-    #         self.loop.run_until_complete(
-    #             self.status_monitor.start_monitoring()
-    #         )
-    #     self.loop_thread = threading.Thread(target=run_loop, daemon=True)
-    #     self.loop_thread.start()
-
-
         
     def _license_plate_callback(self, msg: String):
         """号牌识别回调函数"""
