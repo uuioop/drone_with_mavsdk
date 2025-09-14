@@ -87,7 +87,6 @@ void ArucoTrackerNode::image_callback(const sensor_msgs::msg::Image::SharedPtr m
 				cv::Mat rot_mat;
 				cv::Rodrigues(rvec, rot_mat);
 				cv::Quatd quat = cv::Quatd::createFromRotMat(rot_mat).normalize();
-
 				// Publish target pose
 				geometry_msgs::msg::PoseStamped pose_msg;
 				pose_msg.header.stamp = msg->header.stamp;

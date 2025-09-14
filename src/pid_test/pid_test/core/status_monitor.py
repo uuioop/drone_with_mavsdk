@@ -158,6 +158,7 @@ class DroneStatusMonitor:
                 if attitude_euler != self.drone_state.attitude_euler:
                     self.drone_state.attitude_euler=attitude_euler
                     await self._publish_yaw_info(attitude_euler.yaw_deg)
+                    self.logger.info(f"yaw_deg:{attitude_euler.yaw_deg}")
         except Exception as e:
             self.logger.warn(f"姿态监控异常: {e}")
     

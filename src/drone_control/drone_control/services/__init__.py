@@ -11,7 +11,7 @@ from .mavsdk_control import MavsdkController
 __all__ = [
     'HybridNavigationController',
     'PrecisionLand',
-    'OffboardNavigationController',
+    'OffboardNavigationController', 
     'ConfirmPositionController',
     'MavsdkController'
 ]

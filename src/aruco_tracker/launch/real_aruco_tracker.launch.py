@@ -27,7 +27,6 @@ def generate_launch_description():
             ]),
             launch_arguments={
                 'enable_infra1': 'true',
-                'infra1_camera_info_url': "'file:///home/a/.ros/camera_info/realsense_infra1_848x480.yaml'"
             }.items()
         ),
 
@@ -55,7 +54,7 @@ def generate_launch_description():
             parameters=[{
                 'aruco_id': 0,
                 'dictionary': 2,
-                'marker_size': 0.196
+                'marker_size': 0.289
             }],
             remappings=[
                 # 輸入話題重映射

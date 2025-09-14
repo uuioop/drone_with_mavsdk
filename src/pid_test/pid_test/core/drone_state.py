@@ -12,7 +12,7 @@ class DroneState:
         self.connected = False
         self._landed = False
         # 精准降落
-        self._search_started = True
+        self._search_started = False
 
         # 确认地址
         self.confirm_started=False

@@ -7,22 +7,7 @@ from mavsdk.telemetry import FlightMode ,LandedState
 from mavsdk.offboard import (OffboardError, PositionNedYaw, VelocityNedYaw,
                             VelocityBodyYawspeed)
 from mavsdk.mission import MissionItem , MissionPlan, MissionError
-
-class SimpleMissionItem:
-    def __init__(self, latitude, longitude, altitude, speed):
-        if not (-90 <= latitude <= 90):
-            raise ValueError("Latitude must be between -90 and 90 degrees.")
-        if not (-180 <= longitude <= 180):
-            raise ValueError("Longitude must be between -180 and 180 degrees.")
-        if not (0 <= altitude <= 1000):
-            raise ValueError("Altitude must be between 0 and 1000 meters.")
-        if not (0 <= speed <= 20):
-            raise ValueError("Speed must be between 0 and 20 m/s.")
-
-        self.latitude = latitude
-        self.longitude = longitude
-        self.altitude = altitude
-        self.speed = speed
+from drone_control.utils import SimpleMissionItem
 
 class MavsdkController:
     """MAVSDK 控制器封装类"""
@@ -40,21 +25,17 @@ class MavsdkController:
         self.drone_state = drone_state
 
     # --- 基础动作 ---
-    async def _connect_to_drone(self,system_address):
-        """连接到无人机""" 
-        try:      
-            self.logger.info(f"尝试连接到无人机: {system_address}")
-            await self.drone.connect(system_address=system_address)
-            # 获取初始位置
-            await self._get_home_position()
-            async for state in self.drone.core.connection_state():
-                if state.is_connected:
-                    self.logger.info("成功连接到无人机!")
-                    self.drone_state.update_connection(True)
-                    break
-        except ActionError as e:
-            self.logger.error(f"连接到无人机失败: {e}")
-            return False
+    async def _connect_to_drone(self, system_address) -> None:
+        self.logger.info(f"尝试连接到无人机: {system_address}")
+        await self.drone.connect(system_address=system_address)
+        await self._get_home_position()
+
+        async for state in self.drone.core.connection_state():
+            if state.is_connected:
+                self.logger.info("成功连接到无人机!")
+                self.drone_state.update_connection(True)
+                return
+        raise RuntimeError("连接超时")
     
     async def _get_home_position(self):
         """获取家位置"""
@@ -88,14 +69,11 @@ class MavsdkController:
         """起飞到指定高度"""
         try:
             self.logger.info(f"正在起飞到 {altitude} 米...")
+            await self.arm()
             await self.drone.action.set_takeoff_altitude(altitude)
             await self.drone.action.takeoff()
             
-            async for position in self.drone.telemetry.position():
-                if position.relative_altitude_m >= altitude * 0.95:
-                    self.logger.info(f"已达到目标高度: {position.relative_altitude_m:.1f}米")
-                    return True
-                await asyncio.sleep(0.1)
+            await asyncio.sleep(5)
         except Exception as e:
             self.logger.error(f"起飞失败: {e}")
             raise
@@ -128,7 +106,7 @@ class MavsdkController:
         try:
             await self.drone.offboard.set_velocity_body(VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
             await self.drone.offboard.start()
-            self.logger.info("已进入 Offboard 模式")
+            await asyncio.sleep(1)
             return True
         except OffboardError as e:
             self.logger.error(f"启动 Offboard 模式失败: {e}")
@@ -142,6 +120,7 @@ class MavsdkController:
             
         try:
             await self.drone.offboard.stop()
+            await asyncio.sleep(1)
             return True
         except OffboardError as e:
             self.logger.error(f"退出 Offboard 模式失败: {e}")
@@ -151,25 +130,17 @@ class MavsdkController:
     async def goto_position_ned(self, north, east, down, yaw=0.0, tolerance=0.5):
         """
         飞行到指定的 NED 坐标点，直到误差小于 tolerance 才返回。
-        这会取代所有 asyncio.sleep() 的等待。
-        """
-        # 确保在 Offboard 模式中
-        if not self.drone_state.current_flight_mode == FlightMode.OFFBOARD:
-            self.logger.error("未在 Offboard 模式中，无法执行位置控制")
-            return False
-        
+        """      
         self.logger.info(f"正在前往 NED: ({north}, {east}, {down})")
         # 内部循环，持续发送 set_position_ned 指令
         # 并检查 self.drone_state.current_position_ned 与目标的距离
         # 直到距离小于 tolerance 后退出循环
         max_attempts = 1000  # 防止无限循环
         attempt = 0
-        
-        while attempt < max_attempts:
-            try:
+        try:
+            while attempt < max_attempts:
                 # 发送位置指令
                 await self.drone.offboard.set_position_ned(PositionNedYaw(north, east, down, yaw))
-                
                 # 检查当前位置与目标的距离
                 if self.drone_state.current_position_ned is not None:
                     current_n = self.drone_state.current_position_ned.north_m
@@ -190,29 +161,24 @@ class MavsdkController:
                     # 如果距离小于容差，则认为已到达目标点
                     if distance <= tolerance:
                         self.logger.info(f"已到达目标点，最终距离: {distance:.2f}m")
+                        await asyncio.sleep(0.5)
                         return True
                 
                 # 短暂等待后继续循环
                 await asyncio.sleep(0.1)
-                attempt += 1
-                
-            except OffboardError as e:
-                self.logger.error(f"设置位置失败: {e}")
-                raise
-            except Exception as e:
-                self.logger.error(f"位置控制过程中出错: {e}")
-                raise
-        
+                attempt += 1  
+        except OffboardError as e:
+            self.logger.error(f"设置位置失败: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"位置控制过程中出错: {e}")
+            raise
         # 如果超过最大尝试次数仍未到达目标
         self.logger.warning(f"在 {max_attempts} 次尝试后仍未到达目标点")
         return False
 
     async def set_velocity_ned(self, vel_n: float, vel_e: float, vel_d: float, yaw_deg: float = 0.0) -> bool:
-        """设置 NED 坐标系下的目标速度"""
-        if not self.drone_state.current_flight_mode == FlightMode.OFFBOARD:
-            self.logger.error("未在 Offboard 模式中，无法设置速度")
-            return False
-            
+        """设置 NED 坐标系下的目标速度"""          
         try:
             await self.drone.offboard.set_velocity_ned(VelocityNedYaw(vel_n, vel_e, vel_d, yaw_deg))
             return True
@@ -221,11 +187,7 @@ class MavsdkController:
             raise
 
     async def set_velocity_body(self, forward_m_s: float, right_m_s: float, down_m_s: float, yawspeed_deg_s: float) -> bool:
-        """设置机体坐标系下的目标速度"""
-        if not self.drone_state.current_flight_mode == FlightMode.OFFBOARD:
-            self.logger.error("未在 Offboard 模式中，无法设置机体速度")
-            return False
-        
+        """设置机体坐标系下的目标速度"""        
         try:
             await self.drone.offboard.set_velocity_body(
                 VelocityBodyYawspeed(forward_m_s, right_m_s, down_m_s, yawspeed_deg_s))
@@ -276,14 +238,14 @@ class MavsdkController:
 
             # 发送指令
             await self.set_velocity_body(
-                VelocityBodyYawspeed(0.0, 0.0, 0.0, applied_yaw_rate)
+                0.0, 0.0, 0.0, applied_yaw_rate
             )
             
             await asyncio.sleep(0.05)  # 提高控制频率以获得更平滑的响应
 
         # 发送最终停止指令
         await self.set_velocity_body(
-            VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0)
+            0.0, 0.0, 0.0, 0.0
         )
 
     async def land_autodisarm(self):
