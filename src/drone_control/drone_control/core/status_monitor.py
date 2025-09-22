@@ -7,16 +7,15 @@
 import math
 import asyncio
 from std_msgs.msg import String
-from drone_control.utils import calculate_distance
 from mavsdk.telemetry import LandedState,PositionVelocityNed
 
 class DroneStatusMonitor:
     """无人机状态监控类"""
     
-    def __init__(self, drone, drone_state, logger):
-        self.drone = drone
-        self.drone_state = drone_state
-        self.logger = logger
+    def __init__(self, node):
+        self.drone = node.drone
+        self.drone_state = node.drone_state
+        self.logger = node.get_logger()
         self.position_tolerance = 5.0
         self.altitude_tolerance = 2.0
         self.yaw_tolerance = 10.0

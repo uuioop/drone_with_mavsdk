@@ -1,0 +1,25 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from drone_control_interfaces/interface/Nav.srv
+// generated code does not contain a copyright notice
+
+
+module drone_control_interfaces {
+  module srv {
+    @verbatim (language="comment", text=
+      "请求字段")
+    struct Nav_Request {
+      double latitude_deg;
+
+      double longitude_deg;
+
+      double absolute_altitude_m;
+    };
+    @verbatim (language="comment", text=
+      "响应字段")
+    struct Nav_Response {
+      boolean success;
+
+      string message;
+    };
+  };
+};

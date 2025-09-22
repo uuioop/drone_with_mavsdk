@@ -1,0 +1,14 @@
+plate_detection_node:
+  ros__parameters:
+    # 模型路径
+    detect_model_path: "weights/plate_detect.pt"
+    rec_model_path: "weights/plate_rec_color.pth"
+    
+    # 检测参数
+    is_color: true
+    img_size: 640
+    
+    # 话题配置
+    input_topic: "/image_raw"
+    output_topic: "/plate_detection_result"
+    result_image_topic: "/plate_detection_result_image" 

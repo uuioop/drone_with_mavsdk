@@ -1,0 +1,44 @@
+running egg_info
+creating ../../build/pid_test/pid_test.egg-info
+writing ../../build/pid_test/pid_test.egg-info/PKG-INFO
+writing dependency_links to ../../build/pid_test/pid_test.egg-info/dependency_links.txt
+writing entry points to ../../build/pid_test/pid_test.egg-info/entry_points.txt
+writing requirements to ../../build/pid_test/pid_test.egg-info/requires.txt
+writing top-level names to ../../build/pid_test/pid_test.egg-info/top_level.txt
+writing manifest file '../../build/pid_test/pid_test.egg-info/SOURCES.txt'
+reading manifest file '../../build/pid_test/pid_test.egg-info/SOURCES.txt'
+writing manifest file '../../build/pid_test/pid_test.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/a/drone_with_mavsdk/build/pid_test/build/lib/pid_test
+copying pid_test/pid_tuner_node.py -> /home/a/drone_with_mavsdk/build/pid_test/build/lib/pid_test
+copying pid_test/__init__.py -> /home/a/drone_with_mavsdk/build/pid_test/build/lib/pid_test
+creating /home/a/drone_with_mavsdk/build/pid_test/build/lib/pid_test/core
+copying pid_test/core/__init__.py -> /home/a/drone_with_mavsdk/build/pid_test/build/lib/pid_test/core
+copying pid_test/core/drone_state.py -> /home/a/drone_with_mavsdk/build/pid_test/build/lib/pid_test/core
+copying pid_test/core/status_monitor.py -> /home/a/drone_with_mavsdk/build/pid_test/build/lib/pid_test/core
+running install
+running install_lib
+creating /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test
+copying /home/a/drone_with_mavsdk/build/pid_test/build/lib/pid_test/pid_tuner_node.py -> /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test
+copying /home/a/drone_with_mavsdk/build/pid_test/build/lib/pid_test/__init__.py -> /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test
+creating /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test/core
+copying /home/a/drone_with_mavsdk/build/pid_test/build/lib/pid_test/core/__init__.py -> /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test/core
+copying /home/a/drone_with_mavsdk/build/pid_test/build/lib/pid_test/core/drone_state.py -> /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test/core
+copying /home/a/drone_with_mavsdk/build/pid_test/build/lib/pid_test/core/status_monitor.py -> /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test/core
+byte-compiling /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test/pid_tuner_node.py to pid_tuner_node.cpython-310.pyc
+byte-compiling /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test/core/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test/core/drone_state.py to drone_state.cpython-310.pyc
+byte-compiling /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test/core/status_monitor.py to status_monitor.cpython-310.pyc
+running install_data
+creating /home/a/drone_with_mavsdk/install/pid_test/share/ament_index/resource_index/packages
+copying resource/pid_test -> /home/a/drone_with_mavsdk/install/pid_test/share/ament_index/resource_index/packages
+copying package.xml -> /home/a/drone_with_mavsdk/install/pid_test/share/pid_test
+creating /home/a/drone_with_mavsdk/install/pid_test/share/pid_test/launch
+copying launch/pid_tuner.launch.py -> /home/a/drone_with_mavsdk/install/pid_test/share/pid_test/launch
+running install_egg_info
+Copying ../../build/pid_test/pid_test.egg-info to /home/a/drone_with_mavsdk/install/pid_test/lib/python3.10/site-packages/pid_test-0.0.0-py3.10.egg-info
+running install_scripts
+Installing pid_tuner script to /home/a/drone_with_mavsdk/install/pid_test/lib/pid_test
+writing list of installed files to '/home/a/drone_with_mavsdk/build/pid_test/install.log'

@@ -2,8 +2,6 @@
 """
 无人机状态管理模块
 """
-
-from drone_control.utils.utils import calculate_ned_from_origin
 import numpy as np
 
 class DroneState:
@@ -12,7 +10,7 @@ class DroneState:
         self.connected = False
         self._landed = False
         # 精准降落
-        self._search_started = True
+        self._search_started = False
 
         # 确认地址
         self.confirm_started=False
@@ -98,28 +96,6 @@ class DroneState:
             'has_target': self.target_position is not None,
             'has_home': self.home_position is not None
         } 
-    
-    # def calculate_ned_from_origin(self) -> tuple:
-    #     """计算当前位置相对于起始位置的NED坐标"""
 
-    #     # 计算当前位置相对于起始位置的NED坐标
-    #     current_lat, current_lon, current_alt = self.current_position.latitude_deg, self.current_position.longitude_deg, self.current_position.absolute_altitude_m
-    #     home_lat, home_lon, home_alt = self.home_position.latitude_deg, self.home_position.longitude_deg, self.home_position.absolute_altitude_m
-
-    #     # 计算当前位置相对于起始位置的NED坐标
-    #     return calculate_ned_from_origin(home_lat, home_lon, home_alt, current_lat, current_lon, current_alt)
-
-    # def calculate_target_ned_from_origin(self) -> tuple:
-    #     """计算目标位置相对于起始位置的NED坐标"""
-    #     target_lat, target_lon, target_alt = self.target_position[0], self.target_position[1], self.target_position[2]
-    #     home_lat, home_lon, home_alt = self.home_position.latitude_deg, self.home_position.longitude_deg, self.home_position.absolute_altitude_m
-
-    #     # 计算目标位置相对于起始位置的NED坐标
-    #     return calculate_ned_from_origin(home_lat, home_lon, home_alt, target_lat, target_lon, target_alt)
-
-    def get_current_time(self) -> float:
-        """获取当前时间戳（秒）"""
-        import time
-        return time.time()
 
 

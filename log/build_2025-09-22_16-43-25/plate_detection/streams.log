@@ -1,0 +1,69 @@
+[0.125s] Invoking command in '/home/a/drone_with_mavsdk/build/plate_detection': CMAKE_PREFIX_PATH=/home/a/drone_with_mavsdk/install/cv_bridge:/home/a/drone_with_mavsdk/install/vision_opencv:/home/a/drone_with_mavsdk/install/plate_detection:/home/a/drone_with_mavsdk/install/image_geometry:/home/a/drone_with_mavsdk/install/drone_control_interfaces:/home/a/drone_with_mavsdk/install/aruco_tracker:/home/a/land_ws/install/vision_opencv:/home/a/land_ws/install/plate_detection:/home/a/land_ws/install/image_geometry:/home/a/land_ws/install/drone_control_interfaces:/home/a/land_ws/install/aruco_tracker:/home/a/land_ws/install/cv_bridge:/home/a/drone_with_mavsdk/install/pid_test:/home/a/drone_with_mavsdk/install/opencv_tests:/home/a/drone_with_mavsdk/install/drone_control:/home/a/land_ws/install/pid_test:/home/a/land_ws/install/opencv_tests:/home/a/land_ws/install/drone_control:/opt/ros/humble LD_LIBRARY_PATH=/home/a/drone_with_mavsdk/install/cv_bridge/lib:/home/a/drone_with_mavsdk/install/image_geometry/lib:/home/a/drone_with_mavsdk/install/drone_control_interfaces/lib:/home/a/land_ws/install/image_geometry/lib:/home/a/land_ws/install/drone_control_interfaces/lib:/home/a/land_ws/install/cv_bridge/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64 /usr/bin/cmake --build /home/a/drone_with_mavsdk/build/plate_detection -- -j32 -l32
+[0.159s] Built target ament_cmake_python_copy_plate_detection
+[0.262s] running egg_info
+[0.270s] writing plate_detection.egg-info/PKG-INFO
+[0.270s] writing dependency_links to plate_detection.egg-info/dependency_links.txt
+[0.270s] writing top-level names to plate_detection.egg-info/top_level.txt
+[0.291s] reading manifest file 'plate_detection.egg-info/SOURCES.txt'
+[0.291s] writing manifest file 'plate_detection.egg-info/SOURCES.txt'
+[0.304s] Built target ament_cmake_python_build_plate_detection_egg
+[0.311s] Invoked command in '/home/a/drone_with_mavsdk/build/plate_detection' returned '0': CMAKE_PREFIX_PATH=/home/a/drone_with_mavsdk/install/cv_bridge:/home/a/drone_with_mavsdk/install/vision_opencv:/home/a/drone_with_mavsdk/install/plate_detection:/home/a/drone_with_mavsdk/install/image_geometry:/home/a/drone_with_mavsdk/install/drone_control_interfaces:/home/a/drone_with_mavsdk/install/aruco_tracker:/home/a/land_ws/install/vision_opencv:/home/a/land_ws/install/plate_detection:/home/a/land_ws/install/image_geometry:/home/a/land_ws/install/drone_control_interfaces:/home/a/land_ws/install/aruco_tracker:/home/a/land_ws/install/cv_bridge:/home/a/drone_with_mavsdk/install/pid_test:/home/a/drone_with_mavsdk/install/opencv_tests:/home/a/drone_with_mavsdk/install/drone_control:/home/a/land_ws/install/pid_test:/home/a/land_ws/install/opencv_tests:/home/a/land_ws/install/drone_control:/opt/ros/humble LD_LIBRARY_PATH=/home/a/drone_with_mavsdk/install/cv_bridge/lib:/home/a/drone_with_mavsdk/install/image_geometry/lib:/home/a/drone_with_mavsdk/install/drone_control_interfaces/lib:/home/a/land_ws/install/image_geometry/lib:/home/a/land_ws/install/drone_control_interfaces/lib:/home/a/land_ws/install/cv_bridge/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64 /usr/bin/cmake --build /home/a/drone_with_mavsdk/build/plate_detection -- -j32 -l32
+[0.312s] Invoking command in '/home/a/drone_with_mavsdk/build/plate_detection': CMAKE_PREFIX_PATH=/home/a/drone_with_mavsdk/install/cv_bridge:/home/a/drone_with_mavsdk/install/vision_opencv:/home/a/drone_with_mavsdk/install/plate_detection:/home/a/drone_with_mavsdk/install/image_geometry:/home/a/drone_with_mavsdk/install/drone_control_interfaces:/home/a/drone_with_mavsdk/install/aruco_tracker:/home/a/land_ws/install/vision_opencv:/home/a/land_ws/install/plate_detection:/home/a/land_ws/install/image_geometry:/home/a/land_ws/install/drone_control_interfaces:/home/a/land_ws/install/aruco_tracker:/home/a/land_ws/install/cv_bridge:/home/a/drone_with_mavsdk/install/pid_test:/home/a/drone_with_mavsdk/install/opencv_tests:/home/a/drone_with_mavsdk/install/drone_control:/home/a/land_ws/install/pid_test:/home/a/land_ws/install/opencv_tests:/home/a/land_ws/install/drone_control:/opt/ros/humble LD_LIBRARY_PATH=/home/a/drone_with_mavsdk/install/cv_bridge/lib:/home/a/drone_with_mavsdk/install/image_geometry/lib:/home/a/drone_with_mavsdk/install/drone_control_interfaces/lib:/home/a/land_ws/install/image_geometry/lib:/home/a/land_ws/install/drone_control_interfaces/lib:/home/a/land_ws/install/cv_bridge/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64 /usr/bin/cmake --install /home/a/drone_with_mavsdk/build/plate_detection
+[0.315s] -- Install configuration: ""
+[0.315s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/environment/pythonpath.sh
+[0.315s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/environment/pythonpath.dsv
+[0.315s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/local/lib/python3.10/dist-packages/plate_detection-0.0.1-py3.10.egg-info
+[0.315s] -- Installing: /home/a/drone_with_mavsdk/install/plate_detection/local/lib/python3.10/dist-packages/plate_detection-0.0.1-py3.10.egg-info/top_level.txt
+[0.315s] -- Installing: /home/a/drone_with_mavsdk/install/plate_detection/local/lib/python3.10/dist-packages/plate_detection-0.0.1-py3.10.egg-info/SOURCES.txt
+[0.315s] -- Installing: /home/a/drone_with_mavsdk/install/plate_detection/local/lib/python3.10/dist-packages/plate_detection-0.0.1-py3.10.egg-info/dependency_links.txt
+[0.315s] -- Installing: /home/a/drone_with_mavsdk/install/plate_detection/local/lib/python3.10/dist-packages/plate_detection-0.0.1-py3.10.egg-info/PKG-INFO
+[0.315s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/local/lib/python3.10/dist-packages/plate_detection
+[0.315s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/local/lib/python3.10/dist-packages/plate_detection/__init__.py
+[0.315s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/local/lib/python3.10/dist-packages/plate_detection/plate_detection_node.py
+[0.334s] Listing '/home/a/drone_with_mavsdk/install/plate_detection/local/lib/python3.10/dist-packages/plate_detection'...
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/lib/plate_detection/plate_detection_node
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/launch
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/launch/plate_detection.launch.py
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/config
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/config/plate_detection_params.yaml
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/models
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/models/__init__.py
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/models/yolo.py
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/models/experimental.py
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/models/common.py
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/weights
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/weights/plate_detect.pt
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/weights/plate_rec_color.pth
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/fonts
+[0.336s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/fonts/platech.ttf
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/utils
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/utils/metrics.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/utils/torch_utils.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/utils/__init__.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/utils/datasets.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/utils/google_utils.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/utils/cv_puttext.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/utils/autoanchor.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/utils/plots.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/utils/general.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/plate_recognition
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/plate_recognition/plateNet.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/plate_recognition/plate_rec.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/plate_recognition/double_plate_split_merge.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/typing_patch.py
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/ament_index/resource_index/package_run_dependencies/plate_detection
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/ament_index/resource_index/parent_prefix_path/plate_detection
+[0.337s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/environment/ament_prefix_path.sh
+[0.338s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/environment/ament_prefix_path.dsv
+[0.338s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/environment/path.sh
+[0.338s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/environment/path.dsv
+[0.338s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/local_setup.bash
+[0.338s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/local_setup.sh
+[0.338s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/local_setup.zsh
+[0.338s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/local_setup.dsv
+[0.338s] -- Installing: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/package.dsv
+[0.338s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/ament_index/resource_index/packages/plate_detection
+[0.338s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/cmake/plate_detectionConfig.cmake
+[0.338s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/cmake/plate_detectionConfig-version.cmake
+[0.338s] -- Up-to-date: /home/a/drone_with_mavsdk/install/plate_detection/share/plate_detection/package.xml
+[0.339s] Invoked command in '/home/a/drone_with_mavsdk/build/plate_detection' returned '0': CMAKE_PREFIX_PATH=/home/a/drone_with_mavsdk/install/cv_bridge:/home/a/drone_with_mavsdk/install/vision_opencv:/home/a/drone_with_mavsdk/install/plate_detection:/home/a/drone_with_mavsdk/install/image_geometry:/home/a/drone_with_mavsdk/install/drone_control_interfaces:/home/a/drone_with_mavsdk/install/aruco_tracker:/home/a/land_ws/install/vision_opencv:/home/a/land_ws/install/plate_detection:/home/a/land_ws/install/image_geometry:/home/a/land_ws/install/drone_control_interfaces:/home/a/land_ws/install/aruco_tracker:/home/a/land_ws/install/cv_bridge:/home/a/drone_with_mavsdk/install/pid_test:/home/a/drone_with_mavsdk/install/opencv_tests:/home/a/drone_with_mavsdk/install/drone_control:/home/a/land_ws/install/pid_test:/home/a/land_ws/install/opencv_tests:/home/a/land_ws/install/drone_control:/opt/ros/humble LD_LIBRARY_PATH=/home/a/drone_with_mavsdk/install/cv_bridge/lib:/home/a/drone_with_mavsdk/install/image_geometry/lib:/home/a/drone_with_mavsdk/install/drone_control_interfaces/lib:/home/a/land_ws/install/image_geometry/lib:/home/a/land_ws/install/drone_control_interfaces/lib:/home/a/land_ws/install/cv_bridge/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64 /usr/bin/cmake --install /home/a/drone_with_mavsdk/build/plate_detection

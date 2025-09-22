@@ -1,0 +1,110 @@
+[0.430s] Invoking command in '/home/a/drone_with_mavsdk/src/drone_control': AMENT_PREFIX_PATH=/home/a/drone_with_mavsdk/install/drone_control_interfaces:/home/a/drone_with_mavsdk/install/cv_bridge:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/a/drone_with_mavsdk/install/drone_control_interfaces:/home/a/drone_with_mavsdk/install/cv_bridge:${CMAKE_PREFIX_PATH} LD_LIBRARY_PATH=/home/a/drone_with_mavsdk/install/drone_control_interfaces/lib:/home/a/drone_with_mavsdk/install/cv_bridge/lib:/home/a/land_ws/install/image_geometry/lib:/home/a/land_ws/install/drone_control_interfaces/lib:/home/a/land_ws/install/cv_bridge/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64 PYTHONPATH=/home/a/drone_with_mavsdk/build/drone_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages:/home/a/drone_with_mavsdk/install/drone_control_interfaces/local/lib/python3.10/dist-packages:/home/a/drone_with_mavsdk/install/cv_bridge/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/drone_control build --build-base /home/a/drone_with_mavsdk/build/drone_control/build install --record /home/a/drone_with_mavsdk/build/drone_control/install.log --single-version-externally-managed install_data
+[0.545s] running egg_info
+[0.552s] creating ../../build/drone_control/drone_control.egg-info
+[0.552s] writing ../../build/drone_control/drone_control.egg-info/PKG-INFO
+[0.552s] writing dependency_links to ../../build/drone_control/drone_control.egg-info/dependency_links.txt
+[0.552s] writing entry points to ../../build/drone_control/drone_control.egg-info/entry_points.txt
+[0.552s] writing requirements to ../../build/drone_control/drone_control.egg-info/requires.txt
+[0.552s] writing top-level names to ../../build/drone_control/drone_control.egg-info/top_level.txt
+[0.552s] writing manifest file '../../build/drone_control/drone_control.egg-info/SOURCES.txt'
+[0.567s] reading manifest file '../../build/drone_control/drone_control.egg-info/SOURCES.txt'
+[0.568s] writing manifest file '../../build/drone_control/drone_control.egg-info/SOURCES.txt'
+[0.568s] running build
+[0.568s] running build_py
+[0.568s] creating /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control
+[0.568s] copying drone_control/__init__.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control
+[0.568s] copying drone_control/drone_control_node.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control
+[0.569s] creating /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/core
+[0.569s] copying drone_control/core/__init__.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/core
+[0.569s] copying drone_control/core/drone_state.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/core
+[0.569s] copying drone_control/core/status_monitor.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/core
+[0.569s] creating /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/pid_test
+[0.569s] copying drone_control/pid_test/__init__.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/pid_test
+[0.569s] copying drone_control/pid_test/pid_tuner.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/pid_test
+[0.569s] creating /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+[0.569s] copying drone_control/services/__init__.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+[0.569s] copying drone_control/services/precision_land_body.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+[0.569s] copying drone_control/services/confirm_position.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+[0.569s] copying drone_control/services/offboard_navigation.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+[0.569s] copying drone_control/services/mavsdk_control.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+[0.569s] copying drone_control/services/hybrid_navigation.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+[0.569s] creating /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite
+[0.569s] copying drone_control/SQLite/license_plate_database.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite
+[0.569s] copying drone_control/SQLite/__init__.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite
+[0.569s] copying drone_control/SQLite/license_plate_process.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite
+[0.569s] copying drone_control/SQLite/add_plates.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite
+[0.570s] creating /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils
+[0.570s] copying drone_control/utils/__init__.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils
+[0.570s] copying drone_control/utils/Arucotag.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils
+[0.570s] copying drone_control/utils/utils.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils
+[0.570s] copying drone_control/utils/SimpleMissionItem.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils
+[0.570s] running install
+[0.571s] running install_lib
+[0.578s] creating /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control
+[0.578s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/__init__.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control
+[0.578s] creating /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/core
+[0.578s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/core/__init__.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/core
+[0.578s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/core/drone_state.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/core
+[0.578s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/core/status_monitor.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/core
+[0.579s] creating /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/pid_test
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/pid_test/__init__.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/pid_test
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/pid_test/pid_tuner.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/pid_test
+[0.579s] creating /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services/__init__.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services/precision_land_body.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services/confirm_position.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services/offboard_navigation.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services/mavsdk_control.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services/hybrid_navigation.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services
+[0.579s] creating /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/SQLite
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite/license_plate_database.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/SQLite
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite/__init__.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/SQLite
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite/license_plate_process.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/SQLite
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite/add_plates.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/SQLite
+[0.579s] creating /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/utils
+[0.579s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils/__init__.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/utils
+[0.580s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils/Arucotag.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/utils
+[0.580s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils/utils.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/utils
+[0.580s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils/SimpleMissionItem.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/utils
+[0.580s] copying /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/drone_control_node.py -> /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control
+[0.580s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/__init__.py to __init__.cpython-310.pyc
+[0.580s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/core/__init__.py to __init__.cpython-310.pyc
+[0.580s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/core/drone_state.py to drone_state.cpython-310.pyc
+[0.580s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/core/status_monitor.py to status_monitor.cpython-310.pyc
+[0.581s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/pid_test/__init__.py to __init__.cpython-310.pyc
+[0.581s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/pid_test/pid_tuner.py to pid_tuner.cpython-310.pyc
+[0.581s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services/__init__.py to __init__.cpython-310.pyc
+[0.581s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services/precision_land_body.py to precision_land_body.cpython-310.pyc
+[0.583s]   File "/home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services/precision_land_body.py", line 289
+[0.583s]     def calculate_velocity_command(self,tag,is_yaw:bool = True,target_offset) -> Tuple[float, float, float,float]:
+[0.583s]                                                                ^^^^^^^^^^^^^
+[0.583s] SyntaxError: non-default argument follows default argument
+[0.583s] 
+[0.583s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services/confirm_position.py to confirm_position.cpython-310.pyc
+[0.583s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services/offboard_navigation.py to offboard_navigation.cpython-310.pyc
+[0.583s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services/mavsdk_control.py to mavsdk_control.cpython-310.pyc
+[0.584s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services/hybrid_navigation.py to hybrid_navigation.cpython-310.pyc
+[0.584s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/SQLite/license_plate_database.py to license_plate_database.cpython-310.pyc
+[0.585s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/SQLite/__init__.py to __init__.cpython-310.pyc
+[0.585s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/SQLite/license_plate_process.py to license_plate_process.cpython-310.pyc
+[0.585s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/SQLite/add_plates.py to add_plates.cpython-310.pyc
+[0.585s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/utils/__init__.py to __init__.cpython-310.pyc
+[0.586s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/utils/Arucotag.py to Arucotag.cpython-310.pyc
+[0.586s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/utils/utils.py to utils.cpython-310.pyc
+[0.586s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/utils/SimpleMissionItem.py to SimpleMissionItem.cpython-310.pyc
+[0.586s] byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/drone_control_node.py to drone_control_node.cpython-310.pyc
+[0.587s] running install_data
+[0.587s] creating /home/a/drone_with_mavsdk/install/drone_control/share/ament_index/resource_index/packages
+[0.587s] copying resource/drone_control -> /home/a/drone_with_mavsdk/install/drone_control/share/ament_index/resource_index/packages
+[0.587s] copying package.xml -> /home/a/drone_with_mavsdk/install/drone_control/share/drone_control
+[0.587s] creating /home/a/drone_with_mavsdk/install/drone_control/share/drone_control/launch
+[0.588s] copying launch/drone_control.launch.py -> /home/a/drone_with_mavsdk/install/drone_control/share/drone_control/launch
+[0.588s] creating /home/a/drone_with_mavsdk/install/drone_control/share/drone_control/config
+[0.588s] copying config/d435_bridge.yaml -> /home/a/drone_with_mavsdk/install/drone_control/share/drone_control/config
+[0.588s] copying config/precision_land_config.yaml -> /home/a/drone_with_mavsdk/install/drone_control/share/drone_control/config
+[0.588s] running install_egg_info
+[0.595s] Copying ../../build/drone_control/drone_control.egg-info to /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control-0.0.0-py3.10.egg-info
+[0.595s] running install_scripts
+[0.653s] Installing drone_control_node script to /home/a/drone_with_mavsdk/install/drone_control/lib/drone_control
+[0.654s] writing list of installed files to '/home/a/drone_with_mavsdk/build/drone_control/install.log'
+[0.665s] Invoked command in '/home/a/drone_with_mavsdk/src/drone_control' returned '0': AMENT_PREFIX_PATH=/home/a/drone_with_mavsdk/install/drone_control_interfaces:/home/a/drone_with_mavsdk/install/cv_bridge:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/a/drone_with_mavsdk/install/drone_control_interfaces:/home/a/drone_with_mavsdk/install/cv_bridge:${CMAKE_PREFIX_PATH} LD_LIBRARY_PATH=/home/a/drone_with_mavsdk/install/drone_control_interfaces/lib:/home/a/drone_with_mavsdk/install/cv_bridge/lib:/home/a/land_ws/install/image_geometry/lib:/home/a/land_ws/install/drone_control_interfaces/lib:/home/a/land_ws/install/cv_bridge/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64:/usr/local/cuda-11.6/lib64 PYTHONPATH=/home/a/drone_with_mavsdk/build/drone_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages:/home/a/drone_with_mavsdk/install/drone_control_interfaces/local/lib/python3.10/dist-packages:/home/a/drone_with_mavsdk/install/cv_bridge/local/lib/python3.10/dist-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/drone_control build --build-base /home/a/drone_with_mavsdk/build/drone_control/build install --record /home/a/drone_with_mavsdk/build/drone_control/install.log --single-version-externally-managed install_data

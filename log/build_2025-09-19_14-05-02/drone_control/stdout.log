@@ -1,0 +1,46 @@
+running egg_info
+writing ../../build/drone_control/drone_control.egg-info/PKG-INFO
+writing dependency_links to ../../build/drone_control/drone_control.egg-info/dependency_links.txt
+writing entry points to ../../build/drone_control/drone_control.egg-info/entry_points.txt
+writing requirements to ../../build/drone_control/drone_control.egg-info/requires.txt
+writing top-level names to ../../build/drone_control/drone_control.egg-info/top_level.txt
+reading manifest file '../../build/drone_control/drone_control.egg-info/SOURCES.txt'
+writing manifest file '../../build/drone_control/drone_control.egg-info/SOURCES.txt'
+running build
+running build_py
+copying drone_control/__init__.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control
+copying drone_control/drone_control_node.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control
+copying drone_control/core/__init__.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/core
+copying drone_control/core/drone_state.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/core
+copying drone_control/core/status_monitor.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/core
+copying drone_control/pid_test/__init__.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/pid_test
+copying drone_control/pid_test/pid_tuner.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/pid_test
+copying drone_control/services/__init__.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+copying drone_control/services/precision_land_body.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+copying drone_control/services/confirm_position.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+copying drone_control/services/offboard_navigation.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+copying drone_control/services/mavsdk_control.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+copying drone_control/services/hybrid_navigation.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/services
+copying drone_control/SQLite/license_plate_database.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite
+copying drone_control/SQLite/__init__.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite
+copying drone_control/SQLite/license_plate_process.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite
+copying drone_control/SQLite/add_plates.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/SQLite
+copying drone_control/utils/__init__.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils
+copying drone_control/utils/Arucotag.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils
+copying drone_control/utils/utils.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils
+copying drone_control/utils/SimpleMissionItem.py -> /home/a/drone_with_mavsdk/build/drone_control/build/lib/drone_control/utils
+running install
+running install_lib
+byte-compiling /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services/precision_land_body.py to precision_land_body.cpython-310.pyc
+running install_data
+copying resource/drone_control -> /home/a/drone_with_mavsdk/install/drone_control/share/ament_index/resource_index/packages
+copying package.xml -> /home/a/drone_with_mavsdk/install/drone_control/share/drone_control
+copying launch/drone_control.launch.py -> /home/a/drone_with_mavsdk/install/drone_control/share/drone_control/launch
+copying config/d435_bridge.yaml -> /home/a/drone_with_mavsdk/install/drone_control/share/drone_control/config
+copying config/precision_land_config.yaml -> /home/a/drone_with_mavsdk/install/drone_control/share/drone_control/config
+running install_egg_info
+removing '/home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control-0.0.0-py3.10.egg-info' (and everything under it)
+Copying ../../build/drone_control/drone_control.egg-info to /home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control-0.0.0-py3.10.egg-info
+running install_scripts
+Installing drone_control_node script to /home/a/drone_with_mavsdk/install/drone_control/lib/drone_control
+writing list of installed files to '/home/a/drone_with_mavsdk/build/drone_control/install.log'

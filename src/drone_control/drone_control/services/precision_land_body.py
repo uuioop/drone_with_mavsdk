@@ -271,7 +271,6 @@ class PrecisionLand:
             return 0.0, 0.0, 0.0
         # 非特殊处理
         if error is None:
-            
             error = tag.position
         v_x = 0.6 * error[0]
         v_y = 0.6 * error[1]

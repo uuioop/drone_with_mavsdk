@@ -1,0 +1,15 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from drone_control_interfaces/interface/LicenseInfo.srv
+// generated code does not contain a copyright notice
+
+
+module drone_control_interfaces {
+  module srv {
+    struct LicenseInfo_Request {
+      string target_plate;
+    };
+    struct LicenseInfo_Response {
+      string message;
+    };
+  };
+};

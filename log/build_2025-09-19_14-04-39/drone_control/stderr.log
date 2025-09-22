@@ -1,0 +1,5 @@
+  File "/home/a/drone_with_mavsdk/install/drone_control/lib/python3.10/site-packages/drone_control/services/precision_land_body.py", line 289
+    def calculate_velocity_command(self,tag,is_yaw:bool = True,target_offset) -> Tuple[float, float, float,float]:
+                                                               ^^^^^^^^^^^^^
+SyntaxError: non-default argument follows default argument
+

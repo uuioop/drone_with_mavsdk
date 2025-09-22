@@ -5,8 +5,10 @@
 
 from .drone_state import DroneState
 from .status_monitor import DroneStatusMonitor
+from .mavsdk_control import MavsdkController
 
 __all__ = [
     'DroneState',
-    'DroneStatusMonitor'
+    'DroneStatusMonitor',
+    'MavsdkController'
 ]

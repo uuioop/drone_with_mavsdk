@@ -1,0 +1,4 @@
+# 请求字段
+float64 latitude_deg
+float64 longitude_deg
+float64 absolute_altitude_m
