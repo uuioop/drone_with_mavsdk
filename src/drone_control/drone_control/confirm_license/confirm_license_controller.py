@@ -33,6 +33,9 @@ class ConfirmLicenseController(ControllerBase):
         self.license_plate_processor.add_license_plate_to_database("闽DA01010230",90,90,12)  # 添加测试门牌数据
         
         self.license_plate_processor.set_target_license_plate("闽DA01010330")  # 设置目标门牌
+        
+        # 初始化移动方向变量，默认向上飞行
+        self.move_axis, self.move_direction = ('z', -1.0)
 
     def _register_states(self):
         """注册状态机状态 - 定义确认流程的三个主要状态"""

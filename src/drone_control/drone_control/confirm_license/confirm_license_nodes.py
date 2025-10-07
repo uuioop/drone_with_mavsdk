@@ -24,7 +24,14 @@ class SearchState(ControllerBaseState['ConfirmLicenseController']):
 
     async def on_update(self):
         """搜索状态更新 - 检查是否找到目标号牌"""
-        vx,vy,vz,yaw_rate = 0.0, 0.0, -0.5, 0.0
+
+        if self.owner.move_axis == 'y':
+            vy = self.owner.move_direction * 0.5  # 水平调整
+            vz = 0.0  # 停止垂直移动
+        elif self.owner.move_axis == 'z':
+            vy = 0.0  # 停止水平移动
+            vz = self.owner.move_direction * 0.5  # 垂直调整
+
         if self.owner.license_plate_processor.is_valid():
             # 获取当前稳定识别到的号牌
             plate_to_check = self.owner.license_plate_processor.get_stable_license_plate()
@@ -36,10 +43,14 @@ class SearchState(ControllerBaseState['ConfirmLicenseController']):
                 await self.owner.switch_state('confirm')
                 return
             else:
-                # 左右未对齐时，根据Y轴速度指令调整位置
-                vy = self.owner.license_plate_processor.calculate_velocity(['y'])[0]
+                if self.owner.move_axis == 'z':
+                    # 左右未对齐时，根据Y轴速度指令调整位置
+                    vy = self.owner.license_plate_processor.calculate_velocity(['y'])[0]
+                elif self.owner.move_axis == 'y':
+                    # 上下未对齐时，根据Z轴速度指令调整位置
+                    vz = self.owner.license_plate_processor.calculate_velocity(['z'])[0]
         
-        await self.owner.mavsdk_controller.set_velocity_body(vx, vy, vz, yaw_rate)
+        await self.owner.mavsdk_controller.set_velocity_body(0.0, vy, vz, 0.0)
 
     async def on_exit(self):
         """离开搜索状态 - 停止搜索"""
@@ -85,19 +96,21 @@ class ConfirmState(ControllerBaseState['ConfirmLicenseController']):
 class RepositionState(ControllerBaseState['ConfirmLicenseController']):
     """重新定位状态 - 无人机重新定位到目标位置"""
     async def on_enter(self):
-        """进入重新定位状态 - 初始化重新定位参数"""
+        """进入重新定位状态 - 初始化重新定位参数并更新控制器中的移动方向变量"""
         self.owner.logger.info('[CL] RepositionState on_enter: 开始重新定位')
         self.entry_time = time.time()  # 记录进入时间，用于延时等待重新定位完成
         self.timeout = 1.4
-        # 获取移动方向指令
-        self.move_axis, self.move_direction = self.owner.license_plate_processor.calculate_movement_from_plate_diff()
+        # 更新控制器中的移动方向指令
+        new_axis, new_direction = self.owner.license_plate_processor.calculate_movement_from_plate_diff()
         
-        # 如果没有有效的方向指令，使用默认的向上飞行
-        if self.move_axis is None:
-            self.move_axis, self.move_direction = ('z', -1.0)  # 默认向上飞
-            self.owner.logger.info(f'[CL] 未获取到有效方向指令，使用默认向上飞行')
+        # 如果没有有效的方向指令，保持默认的向上飞行
+        if new_axis is None:
+            self.owner.logger.info(f'[CL] 未获取到有效方向指令，保持默认方向飞行')
         else:
-            self.owner.logger.info(f'[CL] 确定移动方向: {self.move_axis}轴，方向: {self.move_direction}')
+            # 更新控制器中的移动方向变量
+            self.owner.move_axis = new_axis
+            self.owner.move_direction = new_direction
+            self.owner.logger.info(f'[CL] 确定移动方向: {new_axis}轴，方向: {new_direction}')
         
         # 设置移动速度
         self.move_speed = 0.5  # 设置一个固定的移动速度
@@ -111,11 +124,15 @@ class RepositionState(ControllerBaseState['ConfirmLicenseController']):
         # 初始化速度向量
         vx, vy, vz, yaw_rate = 0.0, 0.0, 0.0, 0.0
         
+        # 从控制器中获取移动方向指令
+        move_axis = self.owner.move_axis
+        move_direction = self.owner.move_direction
+        
         # 根据确定的轴和方向设置相应的速度分量
-        if self.move_axis == 'y':
-            vy = self.move_direction * self.move_speed
-        elif self.move_axis == 'z':
-            vz = self.move_direction * self.move_speed
+        if move_axis == 'y':
+            vy = move_direction * self.move_speed
+        elif move_axis == 'z':
+            vz = move_direction * self.move_speed
         
         # 执行移动
         await self.owner.mavsdk_controller.set_velocity_body(vx, vy, vz, yaw_rate)
