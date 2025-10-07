@@ -60,7 +60,7 @@ class DroneStatusMonitor:
                 self.logger.warn(f"连接异常：无法获取系统状态: {e}")
                 return False
     
-    async def _check_armed(self):
+    async def check_armed(self):
         """检查无人机是否解锁"""
         try:
             async for armed in self.drone.telemetry.armed():
@@ -70,7 +70,7 @@ class DroneStatusMonitor:
             self.logger.warn(f"解锁状态检查失败: {e}")
             return False
 
-    async def _is_drone_armable(self):
+    async def check_is_drone_armable(self):
         """检查无人机是否可以解锁"""
         try:
             async for health in self.drone.telemetry.health():
@@ -81,7 +81,7 @@ class DroneStatusMonitor:
             self.logger.warn(f"可解锁状态检查失败: {e}")
             return False
             
-    async def _check_preflight(self):
+    async def check_preflight(self):
         if not self.drone_state.connected:
             self.logger.error("未连接无人机")
             return False
@@ -175,6 +175,10 @@ class DroneStatusMonitor:
             else:
                 self.drone_state.landed = False
 
+    async def get_current_flight_mode(self):
+        """获取当前飞行模式"""
+        async for flight_mode in self.drone.telemetry.flight_mode():
+            return flight_mode
     # async def observe_is_in_air(drone, logger):
     #     """ 
     #     监控无人机是否在空中
@@ -199,32 +203,32 @@ class DroneStatusMonitor:
         """发布无人机信息"""
         if self.publisher:
             try:
-                # 发布详细位置信息
+                # 发布详细GPS位置信息
                 position_msg = String()
                 position_msg.data = f"纬度: {position.latitude_deg:.6f}, 经度: {position.longitude_deg:.6f}, 绝对高度: {position.absolute_altitude_m:.2f}m, 相对高度: {position.relative_altitude_m:.2f}m"
                 # self.publisher.publish(position_msg)     
             except Exception as e:
-                self.logger.error(f"发布无人机信息失败: {e}")
+                self.logger.error(f"发布GPS位置信息失败: {e}")
 
     async def _publish_position_ned_info(self,pisition_ned):
-        """发布无人机信息"""
+        """发布NED位置信息"""
         if self.publisher:
             try:
-                # 发布详细位置信息
+                # 发布详细NED位置信息
                 position_msg = String()
                 position_msg.data = f"北={pisition_ned.north_m:.2f}m, 东={pisition_ned.east_m:.2f}m, 下={pisition_ned.down_m:.2f}m"
                 # self.publisher.publish(position_msg)                
             except Exception as e:
-                self.logger.error(f"发布无人机信息失败: {e}")
+                self.logger.error(f"发布NED位置信息失败: {e}")
 
     async def _publish_yaw_info(self, yaw_deg):
         """发布无人机信息"""
         if self.publisher:
             try:
-                # 发布详细位置信息
+                # 发布详细偏航角信息
                 position_msg = String()
                 position_msg.data = f"偏航角={yaw_deg:.2f}°"
                 self.publisher.publish(position_msg)
                 
             except Exception as e:
-                self.logger.error(f"发布无人机信息失败: {e}")
+                self.logger.error(f"发布偏航角信息失败: {e}")

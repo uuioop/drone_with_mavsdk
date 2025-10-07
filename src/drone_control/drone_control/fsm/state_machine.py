@@ -1,6 +1,7 @@
 # drone_control/fsm/state_machine.py
 from .state_node import StateNode
 from typing import Dict
+import asyncio
 
 class StateMachine:
     """
@@ -15,6 +16,11 @@ class StateMachine:
         """根據 ID 安全地切換狀態。"""
         if self._current_state:
             await self._current_state.on_exit()
+            
+        # # 在状态切换时保持悬停0.4秒
+        # if hasattr(self._current_state, 'owner') and hasattr(self._current_state.owner, 'mavsdk_controller'):
+        #     await self._current_state.owner.mavsdk_controller.set_velocity_body(0.0, 0.0, 0.0, 0.0)
+        #     await asyncio.sleep(0.2)
         
         self._current_state = self._state_pool.get(state_id)
         

@@ -35,7 +35,7 @@ class ArucoTagProcessor:
     def update_and_log_validity(self):
         tag_name = self.config.get('tag_name', "未知标记")
         # 检查标记是否有效且未超时
-        self.is_valid_now = self.tag.is_valid() and not self._check_tag_timeout()
+        self.is_valid_now = self.tag.is_valid() and not self._check_tag_timeout() and not self._check_distance_validity()
         
         if not self.is_valid_now and self._was_previously_valid:
             self.logger.warning(f"[PL] {tag_name} 丢失")
@@ -50,20 +50,20 @@ class ArucoTagProcessor:
         :return: 如果标记有时效则返回 True，否则返回 False
         """
         return self.is_valid_now
+
     def process_tag_detection(self, position_cam, orientation_cam_quat):
         """
         將相機座標系下的偵測結果轉換為主體座標系下的 ArucoTag 物件。
         """
         try:
-            # 1. 使用一个小的容差来检查范数是否接近于零
+            # 使用一个小的容差来检查范数是否接近于零
             if np.linalg.norm(orientation_cam_quat) < 1e-6:
                 # 只有在tag从有效变为无效时才记录警告，避免日志刷屏
                 if self.tag.is_valid():
                     self.logger.warning("[TagProcessor] 收到一个范数为零的无效四元数，已忽略。")
                 self.tag = ArucoTag() # 重置tag为无效状态
                 return # 提前返回
-
-            # 2. 只有在检查通过后才进行转换
+            # 相机坐标系到机体坐标系的转换
             r_cb = self.config.get('rotation_matrix', np.eye(3))
             tag_body_position = r_cb @ np.array(position_cam, dtype=float)
             
@@ -73,9 +73,7 @@ class ArucoTagProcessor:
             self.tag = ArucoTag(position=tag_body_position, orientation=tag_body_orientation, timestamp=time.time())
 
         except ValueError as e:
-            # 3. --- 这是关键的修复 ---
             #    使用 ROS2 兼容的方式记录异常信息。
-            #    我们直接将异常对象 e 转换成字符串并附加到日志消息中。
             self.logger.error(f"[TagProcessor] 处理Tag时发生数学错误: {e}")
             self.logger.debug(f"  > 原始输入 position_cam: {position_cam}")
             self.logger.debug(f"  > 原始输入 orientation_cam_quat: {orientation_cam_quat}")
@@ -100,9 +98,49 @@ class ArucoTagProcessor:
             return self._align_timer>=15
 
     def _check_tag_timeout(self) -> bool:
-        """检查标记是否超时未更新。"""
+        """
+        检查标记是否超时未更新。
+        :return: 如果标记超时则返回 True，否则返回 False
+        """
         return time.time() - self.tag.timestamp > self.config['target_timeout'] 
     
+    def _check_distance_validity(self) -> bool:
+        """检查标记距离是否在有效范围内。"""
+        if not self.tag.is_valid():
+            return True  # 如果标记无效，认为距离无效
+        
+        # 从配置获取距离限制参数
+        max_distance = self.config.get('max_detection_distance', np.array([np.inf, np.inf, np.inf]))  # 默认无限制
+        
+        # 检查XYZ各轴是否都超过最大距离
+        tag_position = self.tag.position
+        
+        # 检查每个轴是否都超过对应的最大距离
+        x_invalid = abs(tag_position[0]) > max_distance[0]
+        y_invalid = abs(tag_position[1]) > max_distance[1] 
+        z_invalid = abs(tag_position[2]) > max_distance[2]
+        
+        # 只有当XYZ轴任意一个超过最大距离时才认为无效
+        if x_invalid or y_invalid or z_invalid:
+            return True  # 距离无效
+        
+        return False  # 距离有效 
+    
+    def get_alignment_errors(self) -> np.ndarray:
+        """
+        获取当前标记与目标位置的误差向量。
+        :return: 误差向量 [x_error, y_error, z_error,yaw_error_deg]
+        """
+        if self.tag.is_valid():
+            target_offset = self.config.get('target_offset', np.array([0.0, 0.0, 0.0]))
+            mark_x = self.tag.orientation.apply([0, 0, -1])
+            yaw_error_rad = np.arctan2(mark_x[1], mark_x[0])
+            yaw_error_deg = np.degrees(yaw_error_rad)
+            return np.array([self.tag.position[0]-target_offset[0], self.tag.position[1]-target_offset[1],\
+                 self.tag.position[2]-target_offset[2],yaw_error_deg])
+        else:
+            raise ValueError("Tag is not valid")
+
     def calculate_velocity_command(self,is_yaw:bool = True) -> Tuple[float, float, float,float]:
         """
         通用的速度计算方法，它会考虑目标偏移量。
@@ -119,7 +157,7 @@ class ArucoTagProcessor:
         ki = self.config.get('ki', 0.0)
         max_speed = self.config.get('max_speed', 0.6)
 
-        # 根据误差计算速度 (这里可以用简单的P控制器或完整的PID)
+        # 根据误差计算速度 (这里使用简单的P控制器)
         vx = kp * error[0] + ki * self._integral_error[0]
         vy = kp * error[1] + ki * self._integral_error[1]
         vz = kp * error[2] + ki * self._integral_error[2]
@@ -133,7 +171,7 @@ class ArucoTagProcessor:
 
     def _calculate_yaw_rate(self):
         kp = self.config.get('kp', 0.5)
-        max_yaw_rate_deg_s = self.config.get('max_yaw_rate_deg_s', 15.0)
+        max_yaw_rate_deg_s = self.config.get('max_yaw_rate_deg_s', 10.0)
         min_yaw_rate_deg_s = self.config.get('min_yaw_rate_deg_s', 2.0)
         mark_x = self.tag.orientation.apply([0, 0, -1])
         yaw_error_rad = np.arctan2(mark_x[1], mark_x[0])
@@ -141,9 +179,8 @@ class ArucoTagProcessor:
         self._filtered_yaw_error_deg = (self.filter_alpha * yaw_error_deg) + \
                                     (1 - self.filter_alpha) * self._filtered_yaw_error_deg
     
-        # 3. 使用滤波后的平滑值进行后续所有计算
+        # 使用滤波后的平滑值进行后续所有计算
         yaw_diff = (self._filtered_yaw_error_deg + 180) % 360 - 180
-        # self.logger.info(f"原始误差: {yaw_error_deg:.2f}, 滤波后: {self._filtered_yaw_error_deg:.2f}")
         if abs(yaw_diff) <= self.config.get('yaw_tolerance_deg', 0.3):
             return 0.0
         desired_yaw_rate = kp * yaw_diff
@@ -156,4 +193,5 @@ class ArucoTagProcessor:
         return applied_yaw_rate
     
     def update_config(self,config:dict):
+        """更新配置参数"""
         self.config=config

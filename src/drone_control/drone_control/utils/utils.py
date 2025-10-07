@@ -2,7 +2,7 @@
 """
 几何计算工具模块
 """
-
+# validate_gps_coordinates只有这个用到
 import math
 import numpy as np
 import asyncio

@@ -2,6 +2,8 @@
 float64 latitude_deg
 float64 longitude_deg
 float64 absolute_altitude_m
+float64 yaw_deg
+
 ---
 # 响应字段
 bool success

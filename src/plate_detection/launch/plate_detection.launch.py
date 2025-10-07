@@ -8,6 +8,10 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
+    """
+    启动门牌检测节点
+    功能：检测图像中的门牌并识别门牌号码
+    """
     # 获取包的共享目录
     pkg_share = get_package_share_directory('plate_detection')
     
@@ -15,46 +19,46 @@ def generate_launch_description():
     detect_model_arg = DeclareLaunchArgument(
         'detect_model_path',
         default_value='weights/plate_detect.pt',
-        description='Path to detection model'
+        description='门牌检测模型路径'
     )
     
     rec_model_arg = DeclareLaunchArgument(
         'rec_model_path',
         default_value='weights/plate_rec_color.pth',
-        description='Path to recognition model'
+        description='门牌识别模型路径'
     )
     
     is_color_arg = DeclareLaunchArgument(
         'is_color',
         default_value='true',
-        description='Enable color recognition'
+        description='是否启用颜色识别'
     )
     
     img_size_arg = DeclareLaunchArgument(
         'img_size',
         default_value='640',
-        description='Input image size'
+        description='输入图像尺寸'
     )
     
     input_topic_arg = DeclareLaunchArgument(
         'input_topic',
-        default_value='/image_raw',
-        description='Input image topic'
+        default_value='/camera/camera/color/image_raw',
+        description='输入图像话题'
     )
     
     output_topic_arg = DeclareLaunchArgument(
         'output_topic',
-        default_value='/plate_detection_result',
-        description='Output result topic'
+        default_value='/license_detection_result',
+        description='检测结果输出话题'
     )
     
     result_image_topic_arg = DeclareLaunchArgument(
         'result_image_topic',
-        default_value='/plate_detection_result_image',
-        description='Output result image topic'
+        default_value='/license_detection_result_image',
+        description='检测结果图像输出话题'
     )
     
-    # 创建节点
+    # 创建门牌检测节点
     plate_detection_node = Node(
         package='plate_detection',
         executable='plate_detection_node',
@@ -80,4 +84,11 @@ def generate_launch_description():
         output_topic_arg,
         result_image_topic_arg,
         plate_detection_node,
-    ]) 
+        # 启动rqt图像查看器显示检测结果
+        Node(
+            package='rqt_gui',
+            executable='rqt_gui',
+            arguments=['--standalone', 'rqt_image_view/ImageView',
+                       '--args', '/license_detection_result_image'],
+            output='screen')
+    ])

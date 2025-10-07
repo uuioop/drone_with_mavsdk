@@ -4,187 +4,257 @@ from drone_control.fsm import ControllerBaseState
 from typing import TYPE_CHECKING
 import numpy as np
 
-# 為了讓 VSCode 等 IDE 提供精確的型別提示
+# 类型检查导入 - 为IDE提供精确的类型提示
 if TYPE_CHECKING:
     from .precision_land_controller import PrecisionLandController
 
 class SearchState(ControllerBaseState['PrecisionLandController']):
+    """
+    搜索状态 - 寻找ArUco引导标记并缓慢下降
+    
+    功能：
+    - 控制无人机缓慢下降并搜索前置ArUco引导标记
+    - 设置搜索超时机制，避免无限期搜索
+    - 发现标记后立即切换到对准状态
+    
+    状态流转：
+    - 发现前置引导标记 → AlignOnGuideTagState
+    - 搜索超时 → LandState（应急降落）
+    """
     async def on_enter(self):
-        self.owner.logger.info("[PL 狀態] 進入：搜索模式")
-        await self.owner.mavsdk_controller.arm()
-        await self.owner.mavsdk_controller.start_offboard()
-        self.owner.drone_state.search_started = True
+        """
+        进入搜索状态 - 初始化搜索参数
+        """
+        self.owner.logger.info("[PL] 进入：搜索状态")
+        self.total_search_time = 15.0  # 总搜索时间：15秒
+        self._last_search_time = time.time()  # 记录搜索开始时间
 
     async def on_update(self):
-        if self.owner._tag_front_processor.is_valid():
-            vx,vy,vz,yaw_rate = self.owner._tag_front_processor.calculate_velocity_command(True)
+        """搜索状态主循环：旋转搜索引导标记"""
+        current_search_time = time.time()
+        # 检查搜索是否超时（15秒），超时则切换到应急降落状态
+        if current_search_time - self._last_search_time > self.total_search_time:
+            self.owner.logger.info("[PL] 搜索不到引导标记，等待后续命令")
+            await self.owner.switch_state('land')
         else:
-            vx,vy,vz,yaw_rate = 0.0,0.0,-1.0,0.0
-        # 优先寻找前置引导标记
+            # 默认控制指令：缓慢下降，其他轴保持静止
+            vx,vy,vz,yaw_rate = 0.0,0.0,-0.5,0.0
+        
+        # 优先检测前置引导标记是否有效
         if self.owner._tag_front_processor.is_valid():
                 self.owner.logger.info("[PL] 发现引导标记，开始对准...")
                 await self.owner.switch_state('align_on_guide_tag')
-        # 后面写判断是否角度误差大，才能直接进入平台对准
-        # elif is_down_valid:
-        #     # 如果直接看到了平台标记，也可以直接开始对准
-        #     self.logger.info("[PL] 直接发现平台标记，开始对准...")
-        #     self._switch_state('align_on_platform_tag')
+
         await self.owner.mavsdk_controller.set_velocity_body(vx,vy,vz,yaw_rate)
+        # 更新时间戳，用于下次循环的超时判断
+        self._last_search_time = current_search_time
+
 
     async def on_exit(self):
-        self.owner.logger.info("[PL 狀態] 離開：搜索模式")
-
+        pass
 class AlignOnGuideTagState(ControllerBaseState['PrecisionLandController']):
+    """
+    对准引导标记状态 - 根据ArUco标签位置调整无人机姿态
+    
+    功能：
+    - 使用前置ArUco引导标记进行位置和姿态调整
+    - 主要调整Y轴位置（左右）Z轴（上下）和偏航角
+    - 当偏航角误差较大时，优先调整角度而非位置
+    
+    状态流转：
+    - 对准完成 → ApproachGuideTagState
+    - 发现下方平台标记 → AlignOnPlatformTagState
+    - 标记丢失 → 悬停等待（保持在当前状态）
+    """
     async def on_enter(self): 
-        self.owner.logger.info("[PL 狀態] 進入：对准前置引导标记模式")
-    async def on_update(self): 
-        if not self.owner._tag_front_processor.is_valid():
-            await self.owner.switch_state('search')
-            return
-        _,vy,vz,yaw_rate = self.owner._tag_front_processor.calculate_velocity_command(True)
-        if self.owner._tag_front_processor.is_aligned():
-            await self.owner.switch_state('approach_guide_tag')
-            return
-        await self.owner.mavsdk_controller.set_velocity_body(0.0,vy,vz,yaw_rate)
-        # print(f"[PL 狀態] 对准前置引导标记模式, vy: {vy:.2f}, vz: {vz:.2f}, yaw_rate: {yaw_rate:.2f}")
-    async def on_exit(self): 
-        self.owner.logger.info("[PL 狀態] 離開：对准前置引导标记模式")
+        self.owner.logger.info("[PL] 進入：对准前置引导标记状态")
+        self.tolerances = {
+            'x': 6,     # X轴容差：6米
+            'z': 0.2,     # Z轴容差：0.2米
+            'yaw': 20.0   # 偏航角容差：20度
+        }
+        self.last_pos_x = None
 
-class ApproachGuideTagState(ControllerBaseState['PrecisionLandController']):
-    async def on_enter(self): 
-        self.owner.logger.info("[PL 狀態] 進入：接近前置引导标记模式")
     async def on_update(self): 
+        """对准引导标记状态主循环：调整Y轴和偏航角"""
+        # 检查前置引导标记是否有效，无效则悬停等待
         if not self.owner._tag_front_processor.is_valid():
-            await self.owner.switch_state('search')
+            self.owner.logger.debug("[PL] 对准前置引导标记状态下，搜索不到引导标记，等待后续命令")
+            await self.owner.mavsdk_controller.set_velocity_body(0.0,0.0,0.0,0.0)
             return
+        
+        # 检测下方平台标记，发现则直接切换到最终对准状态
         if self.owner._tag_down_processor.is_valid():
             await self.owner.switch_state('align_on_platform_tag')
             return
+
+        # 检查是否已对准引导标记，对准完成则进入接近状态
+        if self.owner._tag_front_processor.is_aligned():
+            await self.owner.switch_state('approach_guide_tag')
+            return
+        
+        try:
+            # 获取位置误差：Z轴、偏航角误差
+            x_err, _, z_err, yaw_err = self.owner._tag_front_processor.get_alignment_errors()
+        except ValueError as e:
+            self.owner.logger.error(f"[PL] 对准前置引导标记状态, 获取误差向量失败: {e}")
+            return
+        
+        # 计算速度指令，使用引导标记配置
         vx,vy,vz,yaw_rate = self.owner._tag_front_processor.calculate_velocity_command(True)
-        # print(f"[PL 狀態] 接近前置引导标记模式, vx: {vx:.2f}, vy: {vy:.2f}, vz: {vz:.2f}, yaw_rate: {yaw_rate:.2f}")
+        
+        # 如果偏航角误差较大，则优先调整角度，限制平移速度
+        if abs(yaw_err) > self.tolerances['yaw'] :
+            vy = 0  # 暂停Y轴移动，专注调整偏航角
+            vx = 0  # 限制X轴速度
+            vz = np.clip(vz,-0.2,0.2)   # 限制Z轴速度
+        
+        # 如果Z轴误差较大，优先调整高度，限制其他轴速度
+        if abs(z_err) > self.tolerances['z'] :
+            vy = np.clip(vy,-0.2,0.2)   # 限制Y轴速度
+            vx = 0  # 限制X轴速度
 
+        # 如果X轴误差较大，允许小范围移动
+        if abs(x_err) > self.tolerances['x'] :
+            vx = np.clip(vx,-0.15,0.15)   # 允许X轴小范围移动
+        
+        # 发送速度控制指令，实现精确对准
         await self.owner.mavsdk_controller.set_velocity_body(vx,vy,vz,yaw_rate)
-    async def on_exit(self): 
-        self.owner.logger.info("[PL 狀態] 離開：接近前置引导标记模式")
+        
 
-class AlignOnPlatformTagState(ControllerBaseState['PrecisionLandController']):
+    async def on_exit(self): 
+        pass
+class ApproachGuideTagState(ControllerBaseState['PrecisionLandController']):
+    """
+    接近引导标记状态 - 向前移动到平台上方
+    
+    功能：
+    - 使用前置ArUco引导标记计算前进指令
+    - 控制无人机向前移动到平台上方位置
+    - 保持对引导标记的对准状态
+    - 检测到下方平台标记时可直接切换到最终对准
+    
+    状态流转：
+    - 发现下方平台标记 → AlignOnPlatformTagState
+    - 标记丢失 → 悬停等待（保持在当前状态）
+    """
     async def on_enter(self): 
-        self.owner.logger.info("[PL 狀態] 進入：对准平台标记模式")
+        self.owner.logger.info("[PL] 進入：接近前置引导标记状态")
     async def on_update(self): 
+        if not self.owner._tag_front_processor.is_valid():
+            self.owner.logger.debug("[PL] 接近前置引导标记状态下，搜索不到引导标记，等待后续命令")
+            await self.owner.mavsdk_controller.set_velocity_body(0.0,0.0,0.0,0.0)
+            return
+        
+        # 检测下方平台标记，发现则直接切换到最终对准状态
+        if self.owner._tag_down_processor.is_valid():
+            await self.owner.switch_state('align_on_platform_tag')
+            return
+        
+        # 使用引导标记处理器计算速度指令（包含前进分量）
+        vx,vy,vz,yaw_rate = self.owner._tag_front_processor.calculate_velocity_command(True)
+        # 发送速度指令，实现向前移动到平台上方
+        await self.owner.mavsdk_controller.set_velocity_body(vx,vy,vz,yaw_rate)
+    
+    async def on_exit(self): 
+        pass
+class AlignOnPlatformTagState(ControllerBaseState['PrecisionLandController']):
+    """
+    对准平台标记状态 - 最终XY平面精对准
+    
+    功能：
+    - 使用下方ArUco平台标记进行最终精准对准
+    - 主要调整X轴（前后）和Y轴（左右）位置
+    - 实现厘米级精度的XY平面对准
+    - 为垂直降落做准备，确保无人机在平台正上方
+    
+    状态流转：
+    - 对准完成 → DescendState（开始垂直降落）
+    - 标记丢失 → 悬停等待（保持在当前状态）
+    """
+    async def on_enter(self): 
+        self.owner.logger.info("[PL] 進入：对准平台标记状态")
+        self.last_pos_z =None
+    async def on_update(self): 
+        # 检查下方平台标记是否有效，无效则切换到应急降落
         if not self.owner._tag_down_processor.is_valid():
-            await self.owner.switch_state('search')
+            self.owner.logger.debug("[PL] 对准平台标记状态下，搜索不到平台标记，等待后续命令")
+            await self.owner.mavsdk_controller.set_velocity_body(0.0,0.0,0.0,0.0)
             return
 
+        # 检查是否已对准平台标记，对准完成则开始垂直降落
         if self.owner._tag_down_processor.is_aligned():
             await self.owner.switch_state('descend')
             return
+        
+        # 使用平台标记处理器计算XY平面速度指令（不包含Z轴和偏航）
         vx,vy,_,yaw_rate = self.owner._tag_down_processor.calculate_velocity_command(False)
-        print(f"[PL 狀態] 对准平台标记模式, vx: {vx:.2f}, vy: {vy:.2f}, yaw_rate: {yaw_rate:.2f}")
-        await self.owner.mavsdk_controller.set_velocity_body(vx,vy,0.0,yaw_rate)
+        # 发送速度指令，专注XY平面对准，Z轴速度设为0
+        await self.owner.mavsdk_controller.set_velocity_body(vx,vy,0,yaw_rate)
     async def on_exit(self): 
-        self.owner.logger.info("[PL 狀態] 離開：对准平台标记模式")
-
+        pass
 class DescendState(ControllerBaseState['PrecisionLandController']):
+    """
+    下降状态 - 垂直降落并保持XY对准
+    
+    功能：
+    - 控制无人机垂直下降（Z轴速度0.5米/秒）
+    - 保持XY平面对准，使用下方平台标记进行微调
+    - 检测着陆状态，着陆完成后切换到完成状态
+    - 标记丢失时切换到应急降落状态
+    
+    状态流转：
+    - 检测到着陆 → FinishedState（降落成功）
+    - 标记丢失 → LandState（应急降落）
+    """
     async def on_enter(self): 
-        self.owner.logger.info("[PL 狀態] 進入：下降模式")
+        self.owner.logger.info("[PL] 進入：下降状态")
     async def on_update(self): 
+        # 检查是否已着陆，着陆完成则切换到完成状态
         if self.owner.drone_state.landed:
             await self.owner.switch_state('finished')
             return
+        
+        # 检查下方平台标记是否有效，无效则切换到应急降落
         if not self.owner._tag_down_processor.is_valid():
-            await self.owner.switch_state('search')
+            self.owner.logger.info("[PL] 下降状态下，搜索不到平台标记，切换到应急降落")
+            await self.owner.switch_state('land')
             return
         
+        # 使用平台标记处理器计算XY平面速度指令（不包含Z轴和偏航）
         vx,vy,_,yaw_rate = self.owner._tag_down_processor.calculate_velocity_command(False)
         vz=0.5
         await self.owner.mavsdk_controller.set_velocity_body(vx,vy,vz,yaw_rate)
     async def on_exit(self): 
-        self.owner.logger.info("[PL 狀態] 離開：下降模式")
-    
+        pass
 class FinishedState(ControllerBaseState['PrecisionLandController']):
+    """
+    完成状态 - 精准降落成功完成
+    
+    功能：
+    - 表示精准降落流程已成功完成
+    - 停止所有运动，设置零速度指令
+    - 作为最终状态，保持无人机在当前位置
+    
+    状态流转：
+    - 无转出状态（最终状态）
+    """
     async def on_enter(self): 
         self.owner.drone_state.search_started = False
         await self.owner.mavsdk_controller.stop_offboard()
         await self.owner.mavsdk_controller.disarm()
-        self.owner.logger.info("[PL 狀態] 進入：完成模式")
+        self.owner.logger.info("[PL] 進入：完成状态")
     async def on_update(self): pass
     async def on_exit(self): pass
 
-class AutoTuneState(ControllerBaseState['PrecisionLandController']):
+class LandState(ControllerBaseState['PrecisionLandController']):
     """
-    执行高层位置控制器PID自动调参的状态。
+    降落状态 - 应急降落状态
     """
-    async def on_enter(self):
-        self.owner.logger.info("[PL 狀態] 進入：自动调参模式")
-        self.axis_to_tune = self.owner.autotune_axis  # 'x' or 'y'
-        config = self.owner._tag_down_config
-        config['target_timeout']=1.5
-        self.owner._tag_down_processor.update_config(config)
-        self.owner.logger.info(f"====== 开始调参: {self.axis_to_tune.upper()} 轴 ======")
-        self.owner.autotuner.start()
-        self.start_time = time.time()
-        self.tune_duration = 25  # 调参执行时间（秒）
-
-    async def on_update(self):
-        try:
-            # 调参时必须能稳定看到下视Tag
-            tag_processor = self.owner._tag_down_processor
-            is_tag_valid = tag_processor.is_valid()
-            # self.owner.logger.info(f"[AutoTuner Update] Tag valid: {is_tag_valid}", throttle_duration_sec=1.0)
-            
-            if not is_tag_valid:
-                self.owner.logger.warning("[AutoTuner] 平台标记丢失，中断调参！")
-                await self.owner.mavsdk_controller.set_velocity_body(0.0, 0.0, 0.0, 0.0)
-                await self.owner.switch_state('idle')  # 修正：添加 await
-                return
-
-            # 获取当前误差
-            position_error_body = tag_processor.tag.position
-
-            if self.axis_to_tune == 'x':
-                error = position_error_body[0]
-                vx = self.owner.autotuner.step(error)
-                vy, vz, yaw_rate = 0.0, 0.0, 0.0
-            elif self.axis_to_tune == 'y':
-                error = position_error_body[1]
-                vy = self.owner.autotuner.step(error)
-                vx, vz, yaw_rate = 0.0, 0.0, 0.0
-            else:
-                self.owner.logger.error(f"无效的调参轴: {self.axis_to_tune}")
-                await self.owner.switch_state('idle') 
-                return
-
-            # 发送控制指令
-            await self.owner.mavsdk_controller.set_velocity_body(vx, vy, vz, yaw_rate)
-
-            # 检查是否达到调参时间
-            if time.time() - self.start_time > self.tune_duration:
-                self.owner.logger.info(f"调参时间已到 ({self.tune_duration}s)，开始分析数据...")
-                self.owner.autotune_results = self.owner.autotuner.analyze()
-                if self.owner.autotune_results:
-                    self.owner.logger.info(f"[AutoTuner] 自动调参完成: {self.axis_to_tune.upper()} 轴")
-                    self.owner.logger.info(f"[AutoTuner] 计算得到的PID参数: {self.owner.autotune_results}")
-                else:
-                    self.owner.logger.warning(f"[AutoTuner] 自动调参失败: {self.axis_to_tune.upper()} 轴")
-                await self.owner.switch_state('idle') # 修正：添加 await
-
-        except Exception as e:
-            self.owner.logger.error(f"[AutoTuner Update ERROR] 在 on_update 中发生致命错误: {e}", exc_info=True)
-            await self.owner.switch_state('idle')
-
-    async def on_exit(self):
-        self.owner.logger.info("[PL 狀態] 離開：自动调参模式")
-        # 确保无人机悬停
-        await self.owner.mavsdk_controller.set_velocity_body(0.0, 0.0, 0.0, 0.0)
-        if self.owner.autotuner.is_tuning:
-            self.owner.logger.info("[AutoTuner] 自动调参意外中止")
-
-class IdleState(ControllerBaseState['PrecisionLandController']):
     async def on_enter(self): 
-        self.owner.logger.info("[PL 狀態] 進入：待机模式")
-        await self.owner.mavsdk_controller.set_velocity_body(0.0, 0.0, 0.0, 0.0)
+        self.owner.logger.info("[PL] 進入：降落状态")
+        await self.owner.mavsdk_controller.set_velocity_body(0.0, 0.0, 0.5, 0.0)
     async def on_update(self): 
-        await self.owner.mavsdk_controller.set_velocity_body(0.0, 0.0, 0.0, 0.0)
+        await self.owner.mavsdk_controller.set_velocity_body(0.0, 0.0, 0.5, 0.0)
     async def on_exit(self): 
-        self.owner.logger.info("[PL 狀態] 離開：待机模式")
-
+        pass

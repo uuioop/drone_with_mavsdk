@@ -1,6 +1,7 @@
 import asyncio
 import math
 import numpy as np
+import time
 from typing import Optional, Tuple, List
 from mavsdk.action import ActionError
 from mavsdk.telemetry import FlightMode ,LandedState
@@ -23,6 +24,7 @@ class MavsdkController:
         self.drone = node.drone
         self.logger = node.get_logger()
         self.drone_state = node.drone_state
+        self.status_monitor = node.status_monitor
 
     # --- 基础动作 ---
     async def _connect_to_drone(self, system_address) -> None:
@@ -44,13 +46,22 @@ class MavsdkController:
                 self.drone_state.update_home_position(home)
                 self.logger.info(f"家位置: {home}")
                 break
+            async for attitude_euler in self.drone.telemetry.attitude_euler():
+                self.drone_state.takeoff_yaw_deg = attitude_euler.yaw_deg
+                self.logger.info(f"偏航角: {attitude_euler.yaw_deg}")
+                break
         except Exception as e:
             self.logger.warn(f"家位置监控异常: {e}")
 
     async def arm(self):
         """解锁无人机电机"""
+        if self.drone_state.is_armed:
+            self.logger.info("无人机电机已解锁")
+            return True
         try:
             await self.drone.action.arm()
+            self.drone_state.is_armed = True
+            self.drone_state.home_position_ned = self.drone_state.current_position_ned
             return True
         except Exception as e:
             self.logger.error(f"解锁失败: {e}")
@@ -58,22 +69,51 @@ class MavsdkController:
 
     async def disarm(self):
         """锁定无人机电机"""
+        if not self.drone_state.is_armed:
+            self.logger.info("无人机电机已锁定")
+            return True
         try:
             await self.drone.action.disarm()
+            self.drone_state.is_armed = False
             return True
         except Exception as e:
             self.logger.error(f"锁定电机失败: {e}")
             raise
 
-    async def takeoff(self, altitude: float = 2.5) -> bool:
-        """起飞到指定高度"""
+    async def takeoff(self, altitude: float = 1.0, timeout: float = 10.0) -> bool:
+        """
+        起飞到指定高度
+        - 在循环内处理高度值为None的情况
+        - 确保所有高度比较都是安全的
+        """
         try:
             self.logger.info(f"正在起飞到 {altitude} 米...")
-            await self.arm()
+            last_time = time.time()
             await self.drone.action.set_takeoff_altitude(altitude)
             await self.drone.action.takeoff()
-            
-            await asyncio.sleep(5)
+
+            while time.time() - last_time < timeout:
+                # 每次循环都获取一次飞行模式和高度
+                current_flight_mode = await self.status_monitor.get_current_flight_mode()
+                current_altitude = self.drone_state.get_current_altitude()
+
+                # 检查模式是否已切换到 HOLD
+                if current_flight_mode == FlightMode.HOLD:
+                    self.logger.info("飞行模式切换为 HOLD。起飞成功")
+                    return True
+
+                # 安全地检查高度是否达标
+                # 只有在 current_altitude 不是 None 的情况下，才进行比较
+                if current_altitude is not None and current_altitude >= altitude * 0.9:
+                    self.logger.info(f"到达目标高度 {altitude} 米。起飞成功")
+                    return True
+                
+                # 如果两个成功条件都不满足，则等待下一次检查
+                await asyncio.sleep(0.5)
+
+            # 如果循环结束（因为超时），则抛出异常
+            raise TimeoutError("起飞超时")
+
         except Exception as e:
             self.logger.error(f"起飞失败: {e}")
             raise
@@ -87,10 +127,10 @@ class MavsdkController:
             self.logger.error(f"降落过程中出错: {e}")
             raise
 
-    async def hold(self,duration: float = 5.0) -> bool:
+    async def hold(self) -> bool:
         """悬停指定时间"""
         try:
-            await self.drone.action.hold(duration)
+            await self.drone.action.hold()
             return True
         except Exception as e:
             self.logger.error(f"悬停过程中出错: {e}")
@@ -99,14 +139,20 @@ class MavsdkController:
     # --- Offboard 模式管理 ---
     async def start_offboard(self) -> bool:
         """启动 Offboard 模式"""
-        if self.drone_state.current_flight_mode == FlightMode.OFFBOARD:
+        if await self.status_monitor.get_current_flight_mode() == FlightMode.OFFBOARD:
             self.logger.info("已经在 Offboard 模式中")
             return True
-            
+        
         try:
             await self.drone.offboard.set_velocity_body(VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0))
+            await asyncio.sleep(0.2)
             await self.drone.offboard.start()
-            await asyncio.sleep(1)
+
+            for _ in range(5):
+                await self.drone.offboard.set_velocity_body(
+                    VelocityBodyYawspeed(0.0, 0.0, 0.0, 0.0)
+                )
+                await asyncio.sleep(0.1) # 10Hz发送
             return True
         except OffboardError as e:
             self.logger.error(f"启动 Offboard 模式失败: {e}")
@@ -114,7 +160,7 @@ class MavsdkController:
 
     async def stop_offboard(self) -> bool:
         """退出 Offboard 模式"""
-        if not self.drone_state.current_flight_mode == FlightMode.OFFBOARD:
+        if not await self.status_monitor.get_current_flight_mode() == FlightMode.OFFBOARD:
             self.logger.info("当前不在 Offboard 模式中")
             return True
             
@@ -195,6 +241,7 @@ class MavsdkController:
         except OffboardError as e:
             self.logger.error(f"设置机体速度失败: {e}")
             raise
+    
     # 转到目标航向角 body
     async def rotate_to_yaw(self, target_yaw, tolerance_deg=2.0):
         """

@@ -1,4 +1,8 @@
 class SimpleMissionItem:
+    """
+    简单任务项类
+    用于表示简单的任务项，包含纬度、经度、高度和速度。
+    """
     def __init__(self, latitude, longitude, altitude, speed):
         if not (-90 <= latitude <= 90):
             raise ValueError("Latitude must be between -90 and 90 degrees.")

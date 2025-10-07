@@ -17,10 +17,12 @@ from pathlib import Path
 # ROS2 imports
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image,CameraInfo
 from std_msgs.msg import String
 from cv_bridge import CvBridge
 
+# 导入自定义消息类型
+from drone_control_interfaces.msg import LicenseInfo
 # 获取包的路径
 from ament_index_python.packages import get_package_share_directory
 
@@ -224,8 +226,7 @@ class PlateDetectionNode(Node):
         self.declare_parameter('rec_model_path', 'weights/plate_rec_color.pth')
         self.declare_parameter('is_color', True)
         self.declare_parameter('img_size', 640)
-        # self.declare_parameter('input_topic', '/image_raw')
-        self.declare_parameter('input_topic', '/camera/camera/color/image_raw')
+        self.declare_parameter('input_topic', '/image_raw')
         self.declare_parameter('output_topic', '/license_detection_result')
         self.declare_parameter('result_image_topic', '/license_detection_result_image')
         
@@ -238,6 +239,21 @@ class PlateDetectionNode(Node):
         output_topic = self.get_parameter('output_topic').value
         result_image_topic = self.get_parameter('result_image_topic').value
         
+        # CameraInfo 订阅和位姿发布
+        self.camera_matrix = None
+        self.dist_coeffs = None
+        
+        # 2. 定义号牌的真实世界尺寸 (单位：米)
+        # 标准蓝牌: 440mm x 140mm
+        plate_width = 0.440
+        plate_height = 0.140
+        # 定义3D模型点 (以号牌中心为原点)
+        self.object_points = np.array([
+            [-plate_width / 2, plate_height / 2, 0],  # Top-left
+            [plate_width / 2, plate_height / 2, 0],   # Top-right
+            [plate_width / 2, -plate_height / 2, 0],  # Bottom-right
+            [-plate_width / 2, -plate_height / 2, 0]  # Bottom-left
+        ], dtype=np.float32)
         # 构建模型路径（相对于包的共享目录）
         detect_model_path = os.path.join(package_share_directory, detect_model_path)
         rec_model_path = os.path.join(package_share_directory, rec_model_path)
@@ -271,9 +287,9 @@ class PlateDetectionNode(Node):
             self.image_callback,
             10
         )
-        
+
         self.result_pub = self.create_publisher(
-            String,
+            LicenseInfo,
             output_topic,
             10
         )
@@ -312,21 +328,35 @@ class PlateDetectionNode(Node):
             result_image_msg.header = msg.header
             self.result_image_pub.publish(result_image_msg)
             
-            # Publish results
+            # 如果检测结果列表不为空，则遍历处理每一个识别到的车牌
             if dict_list:
-                result_str = ""
+                # 循环处理列表中的每一个车牌信息字典
                 for result in dict_list:
-                    if result['plate_no']:
-                        result_str += f"{result['plate_no']} "
-                # 作用：检查去除空白后的字符串是否为空
-                # 如果为空：result_str.strip() 返回空字符串 ""
-                # 在Python中空字符串被视为 False
-                # 如果不为空：返回非空字符串，被视为 True
-                if result_str.strip():# 去除字符串开头和结尾的空白字符（空格、制表符、换行符等）
-                    result_msg = String()
-                    result_msg.data = result_str.strip()
-                    self.result_pub.publish(result_msg)
-                    self.get_logger().info(f'Detected plates: {result_str.strip()}')
+                    # 确保车牌号存在且不为空白字符
+                    if result['plate_no'] and result['plate_no'].strip():
+                        
+                        # 初始化中心点坐标
+                        center_x = 0.0
+                        center_y = 0.0
+                        
+                        # 使用 'landmarks' (四个角点) 来计算中心点
+                        if 'landmarks' in result and isinstance(result['landmarks'], list) and len(result['landmarks']) == 4:
+                            # 计算四个角点坐标的平均值作为中心点
+                            x_sum = sum(p[0] for p in result['landmarks'])
+                            y_sum = sum(p[1] for p in result['landmarks'])
+                            center_x = x_sum / 4.0
+                            center_y = y_sum / 4.0
+                        
+                        # 创建并填充要发布的消息
+                        result_msg = LicenseInfo()
+                        result_msg.header = msg.header  # 复制原始图像消息的header，包含时间戳等信息
+                        result_msg.plate_no = result['plate_no'].strip()
+                        result_msg.center_x = center_x
+                        result_msg.center_y = center_y
+                        
+                        # 为当前这一个车牌发布独立的消息
+                        self.result_pub.publish(result_msg)
+                        self.get_logger().info(f"Published plate: {result_msg.plate_no} at ({center_x:.2f}, {center_y:.2f})")
             
         except Exception as e:
             self.get_logger().error(f'Error processing image: {str(e)}')
@@ -345,4 +375,4 @@ def main(args=None):
         rclpy.shutdown()
 
 if __name__ == '__main__':
-    main() 
+    main()

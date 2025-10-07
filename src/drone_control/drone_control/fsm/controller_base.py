@@ -13,6 +13,7 @@ class ControllerBase(abc.ABC):
         self.drone_state = node.drone_state
         self.mavsdk_controller = node.mavsdk_controller
         self.logger = node.get_logger()
+        self.status_monitor = node.status_monitor
 
         # 衍生類別應該呼叫這個方法來註冊自己的狀態
         self._register_states()
