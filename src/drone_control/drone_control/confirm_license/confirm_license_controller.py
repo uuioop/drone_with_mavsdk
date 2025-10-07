@@ -17,7 +17,6 @@ class ConfirmLicenseController(ControllerBase):
     """确认号牌任务控制器 - 管理ArUco对齐和号牌识别流程"""
     def __init__(self, node):
         """初始化确认号牌控制器
-        
         参数：
             node: ROS2节点实例，用于访问日志和其他处理器
         """

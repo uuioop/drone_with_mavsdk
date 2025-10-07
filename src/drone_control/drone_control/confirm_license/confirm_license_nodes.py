@@ -2,16 +2,14 @@
 确认号牌状态节点 - 无人机精准降落系统的状态机实现
 
 包含一个主要状态：
-
+- SearchState: 搜索目标号牌
 - ConfirmState: 识别并确认号牌匹配
-
-状态流转：Confirm -> PrecisionLand状态机
+- RepositionState: 重新定位状态 - 无人机调整位置以重新搜索目标号牌
 """
 
 from drone_control.fsm import ControllerBaseState
 import time
 from typing import TYPE_CHECKING
-from drone_control.SQLite.license_plate_process import PlateMatchResult
 
 # 类型检查导入 - 为IDE提供精确的类型提示
 if TYPE_CHECKING:

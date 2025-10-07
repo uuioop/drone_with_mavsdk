@@ -41,7 +41,7 @@ setup(
         get_files_and_destinations('fonts', package_name) + \
         get_files_and_destinations('utils', package_name) + \
         get_files_and_destinations('plate_recognition', package_name),
-    install_requires=['setuptools'],
+    install_requires=['setuptools','drone_control_interfaces'],
     zip_safe=True,
     maintainer='user',
     maintainer_email='user@todo.todo',

@@ -8,6 +8,8 @@
   <license>MIT</license>
 
   <buildtool_depend>ament_python</buildtool_depend>
+  <!-- 依赖drone_control_interfaces包 -->
+  <depend>drone_control_interfaces</depend>
 
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>

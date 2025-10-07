@@ -82,11 +82,6 @@ class AlignOnGuideTagState(ControllerBaseState['PrecisionLandController']):
             self.owner.logger.debug("[PL] 对准前置引导标记状态下，搜索不到引导标记，等待后续命令")
             await self.owner.mavsdk_controller.set_velocity_body(0.0,0.0,0.0,0.0)
             return
-        
-        # 检测下方平台标记，发现则直接切换到最终对准状态
-        if self.owner._tag_down_processor.is_valid():
-            await self.owner.switch_state('align_on_platform_tag')
-            return
 
         # 检查是否已对准引导标记，对准完成则进入接近状态
         if self.owner._tag_front_processor.is_aligned():
