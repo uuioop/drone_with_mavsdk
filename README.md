@@ -2,7 +2,7 @@
 一些初步功能实现
 
 ## 自定义仿真模型
--仓库：https://github.com/uuioop/px4_gz
+- 仓库：https://github.com/uuioop/px4_gz
 
 ## 第三方依赖说明
 
