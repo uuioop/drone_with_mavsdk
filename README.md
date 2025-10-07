@@ -1,6 +1,9 @@
 # drone_with_mavsdk
 一些初步功能实现
 
+## 自定义仿真模型
+-仓库：https://github.com/uuioop/px4_gz
+
 ## 第三方依赖说明
 
 本项目中的“号牌识别”模块使用了以下开源项目的代码/模型：
