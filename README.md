@@ -3,7 +3,7 @@
 
 ## 第三方依赖说明
 
-本项目中的“车牌识别”模块使用了以下开源项目部分代码/模型：
+本项目中的“号牌识别”模块使用了以下开源项目的代码/模型：
 
 - 项目名称：[Chinese_license_plate_detection_recognition][https://github.com/we0091234/Chinese_license_plate_detection_recognition]
 - 作者：@we0091234
